@@ -1,0 +1,6 @@
+node_modules
+coverage
+Thumbs.db
+*.log
+npm-debug.*
+dist

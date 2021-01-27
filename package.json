@@ -1,0 +1,40 @@
+{
+  "name": "shader-canvas",
+  "version": "0.0.1",
+  "description": "A web component running WebGL shaders",
+  "scripts": {
+    "build:types": "tsc -t esnext --moduleResolution node -d --emitDeclarationOnly --outFile dist/shader-canvas.d.ts src/shader-canvas.ts",
+    "build:js": "rollup -c rollup.config.js",
+    "build:min": "terser dist/shader-canvas.esm.js --compress --mangle > dist/shader-canvas.esm.min.js",
+    "build:min-umd": "terser dist/shader-canvas.umd.js --compress --mangle > dist/shader-canvas.umd.min.js",
+    "build": "npm run build:js -s && npm run build:min -s && npm run build:min-umd -s && npm run build:types -s",
+    "test": "jest"
+  },
+  "keywords": [
+    "webgl",
+    "creative-coding"
+  ],
+  "files": [
+    "dist"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^8.1.0",
+    "@types/jest": "^26.0.20",
+    "husky": "^4.3.8",
+    "jest": "^26.6.3",
+    "jest-webgl-canvas-mock": "^0.2.3",
+    "pretty-quick": "^3.1.0",
+    "rollup": "^2.38.0",
+    "terser": "^5.5.1",
+    "ts-jest": "^26.4.4",
+    "tslib": "^2.1.0",
+    "typescript": "^4.1.3"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "pretty-quick --staged"
+    }
+  }
+}
