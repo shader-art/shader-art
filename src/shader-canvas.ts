@@ -233,8 +233,11 @@ export class ShaderCanvas extends HTMLElement {
   }
 
   setup() {
-    this.canvas = document.createElement('canvas');
-
+    const canvas = document.createElement('canvas');
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.display = 'block';
+    this.canvas = canvas;
     this.appendChild(this.canvas);
     //@ts-ignore
     this.gl =

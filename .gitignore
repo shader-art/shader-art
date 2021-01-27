@@ -4,3 +4,4 @@ Thumbs.db
 *.log
 npm-debug.*
 dist
+public
