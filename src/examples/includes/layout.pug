@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title Hello World example :)
+    block styles
+      style
+        include:scss ../styles/index.scss
+  body
+    block header
+      header
+        h1 `shader-canvas` examples
+    nav
+      block navigation
+        include:markdown-it nav.md
+    main
+      block main
+        shader-canvas.background(dpr=auto, aria-hidden="true")
+          script(type="vert")
+            include:glslminify ../shaders/example-01.vs
+          script(type="frag")
+            include:glslminify ../shaders/example-01.fs
+
+    block scripts
+      script(src="shader-canvas.umd.min.js")
