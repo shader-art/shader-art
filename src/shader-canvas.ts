@@ -46,6 +46,10 @@ export class ShaderCanvas extends HTMLElement {
     }
   }
 
+  static get observedAttributes() {
+    return ['play-state'];
+  }
+
   connectedCallback() {
     if (!this.gl) {
       this.setup();
@@ -56,31 +60,37 @@ export class ShaderCanvas extends HTMLElement {
     this.dispose();
   }
 
+  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+    if (name === 'play-state' && oldValue !== newValue) {
+      this._updatePlaystate();
+    }
+  }
+
   get devicePixelRatio() {
     return (
       parseFloat(this.getAttribute('dpr') || '') || window.devicePixelRatio
     );
   }
 
-  set playState(state) {
-    if (state === 'stopped' && this.frame > -1) {
+  set playState(state: 'running' | 'stopped') {
+    this.setAttribute('play-state', state);
+  }
+
+  get playState(): 'running' | 'stopped' {
+    return this.getAttribute('play-state') === 'stopped'
+      ? 'stopped'
+      : 'running';
+  }
+
+  private _updatePlaystate() {
+    if (this.playState === 'stopped' && this.frame > -1) {
       const frame = this.frame;
       this.frame = -1;
       cancelAnimationFrame(frame);
     }
-    if (state === 'running' && this.frame === -1) {
+    if (this.playState === 'running' && this.frame === -1) {
       this.frame = requestAnimationFrame(this.render);
     }
-    if (state !== 'running' && state !== 'stopped') {
-      console.warn(
-        'shader-canvas: playState can either be set to `running` or `stopped`. You tried to set it to: ',
-        state
-      );
-    }
-  }
-
-  get playState() {
-    return this.frame > -1 ? 'running' : 'stopped';
   }
 
   onResize() {
@@ -173,8 +183,8 @@ export class ShaderCanvas extends HTMLElement {
       count = Math.max(count, (data.length / recordSize) | 0);
       this.addBuffer(name, recordSize, data);
     });
-    if (bufferScripts.length === 0) {
-      // add a position buffer if no buffers provided.
+    if (typeof this.buffers.position === 'undefined') {
+      // add a position buffer if no position buffer provided.
       this.addBuffer(
         'position',
         2,
@@ -250,13 +260,13 @@ export class ShaderCanvas extends HTMLElement {
     window.addEventListener('resize', this.onResize, false);
     window.addEventListener('mousemove', this.onMouseMove, false);
     this.prefersReducedMotion = prefersReducedMotion();
+    // start the animation loop.
+    this.playState = 'running';
     this.prefersReducedMotion?.addEventListener(
       'change',
       this.onChangeReducedMotion,
       false
     );
-    // start the animation loop.
-    this.playState = 'running';
   }
 
   update() {
