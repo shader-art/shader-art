@@ -8,6 +8,42 @@ By default, shader-canvas provides a `position` buffer, containing 2 triangles f
 
 The `position` buffer can be accessed via the `attribute vec4 position` attribute in the vertex shader.
 
+## Adding shaders
+
+```html
+<shader-canvas>
+  <script type="vert">
+    attribute vec4 position;
+    void main() {
+      gl_Position = position;
+    }
+  </script>
+  <script type="frag">
+    void main() {
+      gl_FragColor = vec4(1., 0., 0., 1.);
+    }
+  </script>
+</shader-canvas>
+```
+
+## Adding textures
+
+(work in progress here)
+
+```html
+<shader-canvas>
+  <texture
+    src="https://placekitten.com/128/128"
+    name="kitten"
+    stretch-x
+    stretch-y
+  ></texture>
+  <script type="frag">
+    uniform sampler2D kitten;
+  </script>
+</shader-canvas>
+```
+
 ## Provided uniforms
 
 - `uniform float time`: number of ticks passed

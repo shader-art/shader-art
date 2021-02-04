@@ -8,6 +8,12 @@ export type ShaderCanvasBuffer = {
   data: Float32Array;
 };
 
+export type ShaderCanvasTexture = {
+  src: string;
+  idx: number;
+  options?: string;
+};
+
 const HEADER = 'precision highp float;';
 const DEFAULT_VERT =
   HEADER + 'attribute vec4 position;void main(){gl_Position=position;}';
@@ -26,18 +32,21 @@ export class ShaderCanvas extends HTMLElement {
   fragShader: WebGLShader | null;
   vertShader: WebGLShader | null;
   watch: Stopwatch;
+  observer: MutationObserver | null;
 
   constructor() {
     super();
     this.canvas = null;
     this.gl = null;
     this.program = null;
+    this.observer = null;
     this.prefersReducedMotion = prefersReducedMotion();
     this.fragShader = null;
     this.vertShader = null;
     this.onResize = this.onResize.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
     this.renderLoop = this.renderLoop.bind(this);
+    this.onDOMChange = this.onDOMChange.bind(this);
     this.onChangeReducedMotion = this.onChangeReducedMotion.bind(this);
     this.frame = -1;
     this.watch = new Stopwatch();
@@ -121,6 +130,9 @@ export class ShaderCanvas extends HTMLElement {
     }
   }
 
+  /**
+   * Called when the window is resized.
+   */
   onResize() {
     const { canvas, gl, program } = this;
     const width = this.clientWidth;
@@ -137,6 +149,14 @@ export class ShaderCanvas extends HTMLElement {
       ]);
       this.render();
     }
+  }
+
+  /**
+   * Called when the DOM inside the element changes
+   * @param mutations
+   */
+  onDOMChange(mutations: MutationRecord[]) {
+    console.log(mutations);
   }
 
   setMouse(x: number, y: number) {
@@ -159,7 +179,7 @@ export class ShaderCanvas extends HTMLElement {
     this._updatePlaystate();
   }
 
-  createShader(type: number, code: string): WebGLShader | null {
+  private createShader(type: number, code: string): WebGLShader | null {
     const { gl } = this;
     if (!gl) {
       return null;
@@ -176,7 +196,11 @@ export class ShaderCanvas extends HTMLElement {
     return sh;
   }
 
-  addBuffer(name: string, recordSize: number, data: Float32Array): void {
+  private addBuffer(
+    name: string,
+    recordSize: number,
+    data: Float32Array
+  ): void {
     const { gl, program } = this;
     if (!gl || !program) {
       throw Error('addBuffer failed: gl context not initialized.');
@@ -194,7 +218,7 @@ export class ShaderCanvas extends HTMLElement {
     gl.vertexAttribPointer(attribLoc, recordSize, gl.FLOAT, false, 0, 0);
   }
 
-  createBuffers() {
+  private createBuffers() {
     const bufferScripts = [...this.querySelectorAll('[type=buffer]')];
     this.buffers = {};
     let count = -1;
@@ -220,6 +244,15 @@ export class ShaderCanvas extends HTMLElement {
     this.count = count;
   }
 
+  /**
+   * upload textures to GPU
+   *
+   * @param textures
+   */
+  private uploadTextures(textures: ShaderCanvasTexture[]) {
+    throw new Error('Not Implemented, TOO Tired right now');
+  }
+
   render() {
     const { gl, program, watch } = this;
     if (!gl || !program) {
@@ -231,12 +264,12 @@ export class ShaderCanvas extends HTMLElement {
     gl.drawArrays(gl.TRIANGLES, 0, this.count);
   }
 
-  renderLoop() {
+  private renderLoop() {
     this.render();
     this.frame = requestAnimationFrame(this.renderLoop);
   }
 
-  createPrograms() {
+  private createPrograms() {
     const { gl } = this;
     if (!gl) {
       throw Error('render failed: gl context not initialized.');
@@ -268,7 +301,7 @@ export class ShaderCanvas extends HTMLElement {
     gl.useProgram(program);
   }
 
-  setup() {
+  private setup() {
     const canvas = document.createElement('canvas');
     canvas.style.width = '100%';
     canvas.style.height = '100%';
@@ -295,16 +328,29 @@ export class ShaderCanvas extends HTMLElement {
       this.onChangeReducedMotion,
       false
     );
+    const textures = [...this.querySelectorAll('texture')].map((item) => ({
+      idx: parseInt(item.getAttribute('idx') || 'NaN', 10),
+      src: item.getAttribute('src') || '',
+    }));
+    if (textures.length > 0) {
+      this.uploadTextures(textures);
+      this.observer = new MutationObserver(this.onDOMChange);
+      this.observer.observe(this, {
+        attributes: true,
+        subtree: true,
+        attributeFilter: ['src'],
+      });
+    }
   }
 
-  update() {
+  reinitialize() {
     this.deleteProgramAndBuffers();
     this.createPrograms();
     this.createBuffers();
     this.onResize();
   }
 
-  deleteProgramAndBuffers() {
+  private deleteProgramAndBuffers() {
     if (!this.gl) {
       throw Error('no gl context initialized');
     }
@@ -316,7 +362,7 @@ export class ShaderCanvas extends HTMLElement {
     this.gl.deleteProgram(this.program);
   }
 
-  dispose() {
+  private dispose() {
     if (this.frame > -1) {
       cancelAnimationFrame(this.frame);
     }
@@ -329,6 +375,11 @@ export class ShaderCanvas extends HTMLElement {
       );
     }
     this.watch.reset();
+    if (this.observer) {
+      this.observer.takeRecords();
+      this.observer.disconnect();
+      this.observer = null;
+    }
     window.removeEventListener('resize', this.onResize, false);
     window.removeEventListener('mousemove', this.onMouseMove, false);
     this.deleteProgramAndBuffers();
