@@ -37,6 +37,7 @@ describe('shader-canvas tests without any configuration', () => {
   beforeEach(() => {
     LISTENERS = [];
     const element = document.createElement('shader-canvas');
+    element.setAttribute('autoplay', '');
     document.body.appendChild(element);
   });
 
@@ -97,12 +98,12 @@ describe('shader-canvas tests without any configuration', () => {
     // enable reduced motion
     mediaQueryMatches = true;
     notifyMediaQueryChangeListeners();
-    expect(shaderCanvasElement.playState).toBe('stopped');
+    expect(shaderCanvasElement.watch.running).toBe(false);
 
     // disable reduced motion
     mediaQueryMatches = false;
     notifyMediaQueryChangeListeners();
-    expect(shaderCanvasElement.playState).toBe('running');
+    expect(shaderCanvasElement.watch.running).toBe(true);
   });
 
   test('shader-canvas renders without crashing', () => {
