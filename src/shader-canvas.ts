@@ -1,4 +1,5 @@
 import { prefersReducedMotion } from './mediaquery';
+import { Stopwatch } from './stopwatch';
 
 export type ShaderCanvasBuffer = {
   buffer: WebGLBuffer;
@@ -24,6 +25,7 @@ export class ShaderCanvas extends HTMLElement {
   vertCode: string = '';
   fragShader: WebGLShader | null;
   vertShader: WebGLShader | null;
+  watch: Stopwatch;
 
   constructor() {
     super();
@@ -35,9 +37,10 @@ export class ShaderCanvas extends HTMLElement {
     this.vertShader = null;
     this.onResize = this.onResize.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
-    this.render = this.render.bind(this);
+    this.renderLoop = this.renderLoop.bind(this);
     this.onChangeReducedMotion = this.onChangeReducedMotion.bind(this);
     this.frame = -1;
+    this.watch = new Stopwatch();
   }
 
   static register() {
@@ -47,7 +50,7 @@ export class ShaderCanvas extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ['play-state'];
+    return ['play-state', 'autoplay'];
   }
 
   connectedCallback() {
@@ -61,8 +64,11 @@ export class ShaderCanvas extends HTMLElement {
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
-    if (name === 'play-state' && oldValue !== newValue) {
+    if (name === 'play-state' && this.gl) {
       this._updatePlaystate();
+    }
+    if (name === 'autoplay' && this.gl) {
+      this.playState = 'running';
     }
   }
 
@@ -82,14 +88,36 @@ export class ShaderCanvas extends HTMLElement {
       : 'running';
   }
 
+  set autoPlay(value: boolean) {
+    if (value) {
+      this.setAttribute('autoplay', '');
+    } else {
+      this.removeAttribute('autoplay');
+    }
+  }
+
+  get autoPlay(): boolean {
+    return this.hasAttribute('autoplay');
+  }
+
   private _updatePlaystate() {
-    if (this.playState === 'stopped' && this.frame > -1) {
+    const { prefersReducedMotion } = this;
+    if (
+      (this.playState === 'stopped' || prefersReducedMotion.matches) &&
+      this.frame > -1
+    ) {
       const frame = this.frame;
       this.frame = -1;
       cancelAnimationFrame(frame);
+      this.watch.stop();
     }
-    if (this.playState === 'running' && this.frame === -1) {
-      this.frame = requestAnimationFrame(this.render);
+    if (
+      this.playState === 'running' &&
+      prefersReducedMotion.matches === false &&
+      this.frame === -1
+    ) {
+      this.frame = requestAnimationFrame(this.renderLoop);
+      this.watch.start();
     }
   }
 
@@ -107,6 +135,7 @@ export class ShaderCanvas extends HTMLElement {
         gl.drawingBufferWidth,
         gl.drawingBufferHeight,
       ]);
+      this.render();
     }
   }
 
@@ -127,11 +156,7 @@ export class ShaderCanvas extends HTMLElement {
   }
 
   onChangeReducedMotion() {
-    if (this.prefersReducedMotion?.matches) {
-      this.playState = 'stopped';
-    } else {
-      this.playState = 'running';
-    }
+    this._updatePlaystate();
   }
 
   createShader(type: number, code: string): WebGLShader | null {
@@ -195,19 +220,20 @@ export class ShaderCanvas extends HTMLElement {
     this.count = count;
   }
 
-  render(time = 0) {
-    const { gl, program, prefersReducedMotion } = this;
+  render() {
+    const { gl, program, watch } = this;
     if (!gl || !program) {
       throw Error('render failed: gl context not initialized.');
     }
     const uTime = gl.getUniformLocation(program, 'time');
+    const time = watch.elapsedTime;
     gl.uniform1f(uTime, time);
     gl.drawArrays(gl.TRIANGLES, 0, this.count);
-    if (!prefersReducedMotion.matches) {
-      this.frame = requestAnimationFrame(this.render);
-    } else {
-      this.frame = -1;
-    }
+  }
+
+  renderLoop() {
+    this.render();
+    this.frame = requestAnimationFrame(this.renderLoop);
   }
 
   createPrograms() {
@@ -260,8 +286,10 @@ export class ShaderCanvas extends HTMLElement {
     window.addEventListener('resize', this.onResize, false);
     window.addEventListener('mousemove', this.onMouseMove, false);
     this.prefersReducedMotion = prefersReducedMotion();
-    // start the animation loop.
-    this.playState = 'running';
+    this.render();
+    if (this.autoPlay) {
+      this.playState = 'running';
+    }
     this.prefersReducedMotion?.addEventListener(
       'change',
       this.onChangeReducedMotion,
@@ -300,6 +328,7 @@ export class ShaderCanvas extends HTMLElement {
         false
       );
     }
+    this.watch.reset();
     window.removeEventListener('resize', this.onResize, false);
     window.removeEventListener('mousemove', this.onMouseMove, false);
     this.deleteProgramAndBuffers();

@@ -16,7 +16,7 @@ html(lang="en")
         include:markdown-it nav.md
     main
       block main
-        shader-canvas.background(dpr=auto, aria-hidden="true")
+        shader-canvas.background(dpr="auto", aria-hidden="true", autoplay="autoplay")
           script(type="vert")
             include:glslminify ../shaders/example-01.vs
           script(type="frag")

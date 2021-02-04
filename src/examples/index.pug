@@ -1,9 +1,3 @@
 extends includes/layout.pug
 block header
   h1 Underwater world
-block main
-  shader-canvas.background(dpr=auto, aria-label="Underwater world")
-    script(type="vert")
-      include:glslminify shaders/example-01.vs
-    script(type="frag")
-      include:glslminify shaders/example-01.fs

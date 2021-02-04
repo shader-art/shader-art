@@ -110,7 +110,7 @@ describe('shader-canvas tests without any configuration', () => {
     expect(element).toBeDefined();
     const shaderCanvasElement = <ShaderCanvas>element;
     expect(() => {
-      shaderCanvasElement.render(0);
+      shaderCanvasElement.render();
     }).not.toThrow();
   });
 });
