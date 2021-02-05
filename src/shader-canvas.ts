@@ -1,3 +1,4 @@
+import { ShaderCanvasPlugin } from './plugins/shader-canvas-plugin';
 import { prefersReducedMotion } from './mediaquery';
 import { Stopwatch } from './stopwatch';
 
@@ -11,7 +12,8 @@ export type ShaderCanvasBuffer = {
 export type ShaderCanvasTexture = {
   src: string;
   idx: number;
-  options?: string;
+  name: string;
+  options?: Record<string, any>;
 };
 
 const HEADER = 'precision highp float;';
@@ -51,6 +53,8 @@ export class ShaderCanvas extends HTMLElement {
     this.frame = -1;
     this.watch = new Stopwatch();
   }
+
+  static plugins: ShaderCanvasPlugin[] = [];
 
   static register() {
     if (typeof customElements.get('shader-canvas') === 'undefined') {
@@ -244,15 +248,6 @@ export class ShaderCanvas extends HTMLElement {
     this.count = count;
   }
 
-  /**
-   * upload textures to GPU
-   *
-   * @param textures
-   */
-  private uploadTextures(textures: ShaderCanvasTexture[]) {
-    throw new Error('Not Implemented, TOO Tired right now');
-  }
-
   render() {
     const { gl, program, watch } = this;
     if (!gl || !program) {
@@ -328,19 +323,6 @@ export class ShaderCanvas extends HTMLElement {
       this.onChangeReducedMotion,
       false
     );
-    const textures = [...this.querySelectorAll('texture')].map((item) => ({
-      idx: parseInt(item.getAttribute('idx') || 'NaN', 10),
-      src: item.getAttribute('src') || '',
-    }));
-    if (textures.length > 0) {
-      this.uploadTextures(textures);
-      this.observer = new MutationObserver(this.onDOMChange);
-      this.observer.observe(this, {
-        attributes: true,
-        subtree: true,
-        attributeFilter: ['src'],
-      });
-    }
   }
 
   reinitialize() {
