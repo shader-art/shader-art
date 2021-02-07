@@ -35,7 +35,6 @@ export class ShaderCanvas extends HTMLElement {
   fragShader: WebGLShader | null;
   vertShader: WebGLShader | null;
   watch: Stopwatch;
-  observer: MutationObserver | null;
   activePlugins: ShaderCanvasPlugin[];
 
   constructor() {
@@ -43,7 +42,6 @@ export class ShaderCanvas extends HTMLElement {
     this.canvas = null;
     this.gl = null;
     this.program = null;
-    this.observer = null;
     this.prefersReducedMotion = prefersReducedMotion();
     this.fragShader = null;
     this.vertShader = null;
@@ -51,7 +49,6 @@ export class ShaderCanvas extends HTMLElement {
     this.onResize = this.onResize.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
     this.renderLoop = this.renderLoop.bind(this);
-    this.onDOMChange = this.onDOMChange.bind(this);
     this.onChangeReducedMotion = this.onChangeReducedMotion.bind(this);
     this.frame = -1;
     this.watch = new Stopwatch();
@@ -156,14 +153,6 @@ export class ShaderCanvas extends HTMLElement {
       ]);
       this.render();
     }
-  }
-
-  /**
-   * Called when the DOM inside the element changes
-   * @param mutations
-   */
-  onDOMChange(mutations: MutationRecord[]) {
-    console.log(mutations);
   }
 
   setMouse(x: number, y: number) {
@@ -368,11 +357,6 @@ export class ShaderCanvas extends HTMLElement {
     this.watch.reset();
     for (const activePlug of this.activePlugins) {
       activePlug.dispose();
-    }
-    if (this.observer) {
-      this.observer.takeRecords();
-      this.observer.disconnect();
-      this.observer = null;
     }
     window.removeEventListener('resize', this.onResize, false);
     window.removeEventListener('mousemove', this.onMouseMove, false);

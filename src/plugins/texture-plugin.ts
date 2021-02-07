@@ -77,7 +77,11 @@ export class TexturePlugin implements ShaderCanvasPlugin {
       }
     }
     this.textureState = {};
-    this.observer?.disconnect();
+    if (this.observer) {
+      this.observer.takeRecords();
+      this.observer.disconnect();
+      this.observer = null;
+    }
   }
 
   private getTextureMetaData(element: HTMLElement): ShaderCanvasTexture {
