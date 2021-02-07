@@ -1,41 +1,14 @@
 import './shader-canvas';
 import { ShaderCanvas } from './shader-canvas';
-
-let LISTENERS: any[] = [];
-let mediaQueryMatches = false;
-
-// simulate dispatching a change event for window.matchMedia
-const notifyMediaQueryChangeListeners = () => {
-  LISTENERS.forEach((listener) => {
-    if (typeof listener === 'function') {
-      listener();
-    }
-  });
-};
-
-//@ts-ignore window.devicePixelRatio shim
-window.devicePixelRatio = 2;
-
-// matchMedia shim (safari style)
-window.matchMedia = () =>
-  (<unknown>{
-    get matches() {
-      return mediaQueryMatches;
-    },
-    addListener(fn: any) {
-      LISTENERS.push(fn);
-    },
-    removeListener(fn: any) {
-      const idx = LISTENERS.indexOf(fn);
-      if (idx >= 0) {
-        LISTENERS.splice(idx, 1);
-      }
-    },
-  }) as MediaQueryList;
+import './test-utils/browser-shims';
+import {
+  setMediaQuery,
+  resetMediaQueryListeners,
+} from './test-utils/browser-shims';
 
 describe('shader-canvas tests without any configuration', () => {
   beforeEach(() => {
-    LISTENERS = [];
+    resetMediaQueryListeners();
     const element = document.createElement('shader-canvas');
     element.setAttribute('autoplay', '');
     document.body.appendChild(element);
@@ -96,13 +69,11 @@ describe('shader-canvas tests without any configuration', () => {
     expect(shaderCanvasElement.playState).toBe('running');
 
     // enable reduced motion
-    mediaQueryMatches = true;
-    notifyMediaQueryChangeListeners();
+    setMediaQuery(true);
     expect(shaderCanvasElement.watch.running).toBe(false);
 
     // disable reduced motion
-    mediaQueryMatches = false;
-    notifyMediaQueryChangeListeners();
+    setMediaQuery(false);
     expect(shaderCanvasElement.watch.running).toBe(true);
   });
 
@@ -118,7 +89,7 @@ describe('shader-canvas tests without any configuration', () => {
 
 describe('shader-canvas tests with buffers, vertex and fragment shader', () => {
   beforeEach(() => {
-    LISTENERS = [];
+    resetMediaQueryListeners();
     const element = document.createElement('shader-canvas');
     element.setAttribute('dpr', '1');
     element.innerHTML = `

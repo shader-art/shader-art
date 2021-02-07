@@ -1,5 +1,8 @@
 import { loadImage } from '../utils/image-loader';
-import { ShaderCanvasPlugin } from './shader-canvas-plugin';
+import {
+  ShaderCanvasPlugin,
+  ShaderCanvasPluginBase,
+} from './shader-canvas-plugin';
 
 export interface ShaderCanvasTexture {
   src: string;
@@ -14,7 +17,9 @@ export interface ShaderCanvasTextureState extends ShaderCanvasTexture {
   texture: WebGLTexture | null;
 }
 
-export class TexturePlugin implements ShaderCanvasPlugin {
+export const TexturePlugin: ShaderCanvasPluginBase = class TexturePlugin
+  implements ShaderCanvasPlugin {
+  name = 'TexturePlugin';
   initialized = false;
   observer: MutationObserver | null = null;
 
@@ -231,4 +236,9 @@ export class TexturePlugin implements ShaderCanvasPlugin {
         });
     });
   }
+};
+
+if (!window.ShaderCanvasPlugins) {
+  window.ShaderCanvasPlugins = {};
 }
+window.ShaderCanvasPlugins['TexturePlugin'] = TexturePlugin;

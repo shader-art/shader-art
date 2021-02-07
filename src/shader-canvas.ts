@@ -1,6 +1,5 @@
 import { prefersReducedMotion } from './mediaquery';
 import { ShaderCanvasPlugin } from './plugins/shader-canvas-plugin';
-import { TexturePlugin } from './plugins/texture-plugin';
 import { Stopwatch } from './stopwatch';
 
 export type ShaderCanvasBuffer = {
@@ -35,7 +34,7 @@ export class ShaderCanvas extends HTMLElement {
   fragShader: WebGLShader | null;
   vertShader: WebGLShader | null;
   watch: Stopwatch;
-  activePlugins: ShaderCanvasPlugin[];
+  private activePlugins: ShaderCanvasPlugin[];
 
   constructor() {
     super();
@@ -53,8 +52,6 @@ export class ShaderCanvas extends HTMLElement {
     this.frame = -1;
     this.watch = new Stopwatch();
   }
-
-  static plugins = [TexturePlugin];
 
   static register() {
     if (typeof customElements.get('shader-canvas') === 'undefined') {
@@ -288,39 +285,62 @@ export class ShaderCanvas extends HTMLElement {
     gl.useProgram(program);
   }
 
-  private setup() {
-    const canvas = document.createElement('canvas');
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.display = 'block';
-    this.canvas = canvas;
-    this.appendChild(this.canvas);
-    //@ts-ignore
-    this.gl =
-      this.canvas.getContext('webgl') ||
-      this.canvas.getContext('experimental-webgl');
-    this.createPrograms();
-    this.createBuffers();
-    for (const Plugin of ShaderCanvas.plugins) {
-      if (this.canvas && this.gl && this.program) {
-        const plug = new Plugin();
-        this.activePlugins.push(plug);
-        plug.setup(this, this.gl, this.program, this.canvas);
+  private setup(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if (this.gl && !this.gl.isContextLost()) {
+        resolve();
+        return;
       }
-    }
-    this.onResize();
+      const canvas = document.createElement('canvas');
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.display = 'block';
+      this.canvas = canvas;
+      this.appendChild(this.canvas);
+      //@ts-ignore
+      this.gl =
+        this.canvas.getContext('webgl') ||
+        this.canvas.getContext('experimental-webgl');
+      if (!this.gl) {
+        reject(new Error('WebGL not supported'));
+      }
+      this.createPrograms();
+      this.createBuffers();
+      this.activatePlugins();
+      this.onResize();
+      this.prefersReducedMotion = prefersReducedMotion();
+      this.render();
+      this.addEventListeners();
+      if (this.autoPlay) {
+        this.playState = 'running';
+      }
+      resolve();
+    });
+  }
+
+  private addEventListeners(): void {
     window.addEventListener('resize', this.onResize, false);
     window.addEventListener('mousemove', this.onMouseMove, false);
-    this.prefersReducedMotion = prefersReducedMotion();
-    this.render();
-    if (this.autoPlay) {
-      this.playState = 'running';
-    }
     this.prefersReducedMotion?.addEventListener(
       'change',
       this.onChangeReducedMotion,
       false
     );
+  }
+
+  private activatePlugins(): void {
+    if (!window.ShaderCanvasPlugins) {
+      return;
+    }
+    for (const Plugin of Object.values(window.ShaderCanvasPlugins)) {
+      if (this.canvas && this.gl && this.program) {
+        const plug = new Plugin();
+        if (!this.activePlugins.find((item) => item.name === plug.name)) {
+          this.activePlugins.push(plug);
+          plug.setup(this, this.gl, this.program, this.canvas);
+        }
+      }
+    }
   }
 
   reinitialize() {
