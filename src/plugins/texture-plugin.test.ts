@@ -3,8 +3,6 @@ import '../shader-canvas';
 import '../test-utils/browser-shims';
 import { resetMediaQueryListeners } from '../test-utils/browser-shims';
 import { TexturePlugin } from './texture-plugin';
-import { ShaderCanvasPluginBase } from 'plugins/shader-canvas-plugin';
-// import { ShaderCanvas } from '../shader-canvas';
 
 describe('TexturePlugin tests', () => {
   beforeEach(() => {
