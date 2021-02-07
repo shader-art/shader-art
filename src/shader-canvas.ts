@@ -1,5 +1,6 @@
-import { ShaderCanvasPlugin } from './plugins/shader-canvas-plugin';
 import { prefersReducedMotion } from './mediaquery';
+import { ShaderCanvasPlugin } from './plugins/shader-canvas-plugin';
+import { TexturePlugin } from './plugins/texture-plugin';
 import { Stopwatch } from './stopwatch';
 
 export type ShaderCanvasBuffer = {
@@ -35,6 +36,7 @@ export class ShaderCanvas extends HTMLElement {
   vertShader: WebGLShader | null;
   watch: Stopwatch;
   observer: MutationObserver | null;
+  activePlugins: ShaderCanvasPlugin[];
 
   constructor() {
     super();
@@ -45,6 +47,7 @@ export class ShaderCanvas extends HTMLElement {
     this.prefersReducedMotion = prefersReducedMotion();
     this.fragShader = null;
     this.vertShader = null;
+    this.activePlugins = [];
     this.onResize = this.onResize.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
     this.renderLoop = this.renderLoop.bind(this);
@@ -54,7 +57,7 @@ export class ShaderCanvas extends HTMLElement {
     this.watch = new Stopwatch();
   }
 
-  static plugins: ShaderCanvasPlugin[] = [];
+  static plugins = [TexturePlugin];
 
   static register() {
     if (typeof customElements.get('shader-canvas') === 'undefined') {
@@ -309,7 +312,13 @@ export class ShaderCanvas extends HTMLElement {
       this.canvas.getContext('experimental-webgl');
     this.createPrograms();
     this.createBuffers();
-
+    for (const Plugin of ShaderCanvas.plugins) {
+      if (this.canvas && this.gl && this.program) {
+        const plug = new Plugin();
+        this.activePlugins.push(plug);
+        plug.setup(this, this.gl, this.program, this.canvas);
+      }
+    }
     this.onResize();
     window.addEventListener('resize', this.onResize, false);
     window.addEventListener('mousemove', this.onMouseMove, false);
@@ -357,6 +366,9 @@ export class ShaderCanvas extends HTMLElement {
       );
     }
     this.watch.reset();
+    for (const activePlug of this.activePlugins) {
+      activePlug.dispose();
+    }
     if (this.observer) {
       this.observer.takeRecords();
       this.observer.disconnect();
