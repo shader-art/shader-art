@@ -201,8 +201,8 @@ export class TexturePlugin implements ShaderCanvasPlugin {
           resolve();
         })
         .catch((err) => {
-          reject(err);
           this.notifyImagesLoaded(err);
+          reject(err);
         });
     });
   }
@@ -282,6 +282,7 @@ export class TexturePlugin implements ShaderCanvasPlugin {
         );
         this.textureState[item.name].texture = texture;
       }
+      this.textureState[item.name].src = item.src;
       this.textureState[item.name].image = image;
     });
   }

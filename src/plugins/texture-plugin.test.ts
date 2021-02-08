@@ -59,12 +59,29 @@ const createShaderCanvas = (html: string): ShaderCanvas => {
 };
 
 class ImageMockOnLoad extends Image {
-  constructor() {
-    super();
+  constructor(width?: number, height?: number) {
+    super(width, height);
+  }
+  _src = '';
+  set src(value: string) {
+    /* TODO doesnt work :( */
+    this._src = value;
+    // mimic image CDN behavior, a url ending with /:width/:height
+    // returns an image with the according width and height
+    const sizeRoute = /(\d+)\/(\d+)\/?$/;
     setTimeout(() => {
+      const matches = value.match(sizeRoute);
+      if (matches) {
+        this.width = parseInt(matches[1], 10);
+        this.height = parseInt(matches[2], 10);
+      }
       const ev = new Event('load');
       this.dispatchEvent(ev);
     }, 50);
+  }
+
+  get src() {
+    return this._src;
   }
 }
 
@@ -137,7 +154,31 @@ describe('TexturePlugin tests', () => {
     expect(Object.keys(textureState)).toContain('texture');
   });
 
-  test('shader-canvas defines a texture, even when the dom is modified afterwards', async () => {
+  test('shader-canvas defines a texture, and then updates it when the src attrib is changed', async () => {
+    const element = createShaderCanvas(
+      testTexture() + vertexShader + fragmentShader
+    );
+    const texturePlugin = element.activePlugins.find(
+      (p) => p.name === 'TexturePlugin'
+    );
+    expect(texturePlugin).toBeDefined();
+    expect(texturePlugin).toBeInstanceOf(TexturePlugin);
+    await (<TexturePlugin>texturePlugin).whenImagesLoaded();
+    const textureState = (<TexturePlugin>texturePlugin)?.textureState;
+    expect(Object.keys(textureState)).toContain('texture');
+
+    const scTexture = element.querySelector('sc-texture');
+    expect(scTexture).toBeDefined();
+    scTexture?.setAttribute('src', 'https://lorempicsum.com/128/128');
+    await asynced(() => {}, 0);
+    expect((<TexturePlugin>texturePlugin).imagesLoaded).toBe(false);
+    await (<TexturePlugin>texturePlugin).whenImagesLoaded();
+    const newTextureState = (<TexturePlugin>texturePlugin)?.textureState;
+    expect(Object.keys(newTextureState)).toContain('texture');
+    expect(newTextureState.texture.src).toBe('https://lorempicsum.com/128/128');
+  });
+
+  test('shader-canvas defines a texture and then loads another one when the dom is modified afterwards', async () => {
     const element = createShaderCanvas(vertexShader + fragmentShader);
     const texturePlugin = element.activePlugins.find(
       (p) => p.name === 'TexturePlugin'
