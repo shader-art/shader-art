@@ -7,6 +7,6 @@ export interface ShaderCanvasPlugin {
     gl: WebGLRenderingContext | WebGL2RenderingContext,
     program: WebGLProgram,
     canvas: HTMLCanvasElement
-  ): Promise<void>;
-  dispose(): Promise<void>;
+  ): void;
+  dispose(): void;
 }

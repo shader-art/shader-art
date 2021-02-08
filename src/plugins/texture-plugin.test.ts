@@ -64,7 +64,7 @@ class ImageMockOnLoad extends Image {
     setTimeout(() => {
       const ev = new Event('load');
       this.dispatchEvent(ev);
-    }, 0);
+    }, 50);
   }
 }
 
@@ -101,16 +101,15 @@ describe('TexturePlugin tests', () => {
     const div = document.createElement('div');
     document.body.appendChild(div);
     let mutated = false;
-    const observer = new MutationObserver((mutations) => {
+    const observer = new MutationObserver(() => {
       mutated = true;
     });
     observer.observe(div, { subtree: true, childList: true });
     const p = document.createElement('p');
     p.textContent = 'Hi';
     div.appendChild(p);
-    await asynced(() => {
-      expect(mutated).toBe(true);
-    }, 10);
+    await asynced(() => {}, 0);
+    expect(mutated).toBe(true);
   });
 
   test('shader-canvas creation', () => {
@@ -133,11 +132,11 @@ describe('TexturePlugin tests', () => {
     );
     expect(texturePlugin).toBeDefined();
     expect(texturePlugin).toBeInstanceOf(TexturePlugin);
-    await element.whenInitialized();
+    await (<TexturePlugin>texturePlugin).whenImagesLoaded();
     const textureState = (<TexturePlugin>texturePlugin)?.textureState;
     expect(Object.keys(textureState)).toContain('texture');
   });
-  /*
+
   test('shader-canvas defines a texture, even when the dom is modified afterwards', async () => {
     const element = createShaderCanvas(vertexShader + fragmentShader);
     const texturePlugin = element.activePlugins.find(
@@ -145,17 +144,20 @@ describe('TexturePlugin tests', () => {
     );
     expect(texturePlugin).toBeDefined();
     expect(texturePlugin).toBeInstanceOf(TexturePlugin);
-    await element.whenInitialized();
+    await (<TexturePlugin>texturePlugin).whenImagesLoaded();
     const scTexture = document.createElement('sc-texture');
-    scTexture.setAttribute('src', '${src}');
-    scTexture.setAttribute('name', '${name}');
-    scTexture.setAttribute('idx', '${idx}');
+
+    scTexture.setAttribute('src', 'https://placekitten.com/128/128');
+    scTexture.setAttribute('name', 'texture');
+    scTexture.setAttribute('idx', '0');
     element.appendChild(scTexture);
+    await asynced(() => {}, 0);
+    expect((<TexturePlugin>texturePlugin).imagesLoaded).toBe(false);
     await (<TexturePlugin>texturePlugin).whenImagesLoaded();
     const textureState = (<TexturePlugin>texturePlugin)?.textureState;
     expect(Object.keys(textureState)).toContain('texture');
   });
-*/
+
   afterEach(() => {
     const sc = document.querySelector('shader-canvas');
     if (sc) {

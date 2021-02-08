@@ -11,18 +11,12 @@ class DummyPlugin implements ShaderCanvasPlugin {
   name = 'DummyPlugin';
   registered = false;
 
-  setup(): Promise<void> {
-    return new Promise((resolve) => {
-      this.registered = true;
-      resolve();
-    });
+  setup(): void {
+    this.registered = true;
   }
 
-  dispose(): Promise<void> {
-    return new Promise((resolve) => {
-      this.registered = false;
-      resolve();
-    });
+  dispose(): void {
+    this.registered = false;
   }
 }
 

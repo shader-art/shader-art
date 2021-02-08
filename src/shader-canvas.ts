@@ -39,7 +39,6 @@ export class ShaderCanvas extends HTMLElement {
   vertShader: WebGLShader | null = null;
   watch: Stopwatch;
   activePlugins: ShaderCanvasPlugin[] = [];
-  initListeners: ((err?: any) => void)[] = [];
 
   constructor() {
     super();
@@ -131,29 +130,6 @@ export class ShaderCanvas extends HTMLElement {
       this.frame = requestAnimationFrame(this.renderLoop);
       this.watch.start();
     }
-  }
-
-  whenInitialized(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.initialized) {
-        resolve();
-        return;
-      }
-      this.initListeners.push((err?: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
-
-  private notifyInitListeners(err?: any) {
-    for (const initCallback of this.initListeners) {
-      initCallback(err);
-    }
-    this.initListeners = [];
   }
 
   /**
@@ -310,43 +286,33 @@ export class ShaderCanvas extends HTMLElement {
     gl.useProgram(program);
   }
 
-  private setup(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      if (this.gl && !this.gl.isContextLost()) {
-        resolve();
-        return;
-      }
-      const canvas = document.createElement('canvas');
-      canvas.style.width = '100%';
-      canvas.style.height = '100%';
-      canvas.style.display = 'block';
-      this.canvas = canvas;
-      this.appendChild(this.canvas);
-      //@ts-ignore
-      this.gl =
-        this.canvas.getContext('webgl') ||
-        this.canvas.getContext('experimental-webgl');
-      if (!this.gl) {
-        const err = new Error('WebGL not supported');
-        this.notifyInitListeners(err);
-        reject(err);
-        return;
-      }
-      this.createPrograms();
-      this.createBuffers();
-      this.onResize();
-      this.prefersReducedMotion = prefersReducedMotion();
-      this.render();
-      this.addEventListeners();
-      if (this.autoPlay) {
-        this.playState = 'running';
-      }
-      this.activatePlugins().then(() => {
-        this.notifyInitListeners();
-        this.initialized = true;
-        resolve();
-      });
-    });
+  private setup() {
+    if (this.gl && !this.gl.isContextLost()) {
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.display = 'block';
+    this.canvas = canvas;
+    this.appendChild(this.canvas);
+    //@ts-ignore
+    this.gl =
+      this.canvas.getContext('webgl') ||
+      this.canvas.getContext('experimental-webgl');
+    if (!this.gl) {
+      throw new Error('WebGL not supported');
+    }
+    this.createPrograms();
+    this.createBuffers();
+    this.onResize();
+    this.prefersReducedMotion = prefersReducedMotion();
+    this.activatePlugins();
+    this.render();
+    this.addEventListeners();
+    if (this.autoPlay) {
+      this.playState = 'running';
+    }
   }
 
   private addEventListeners(): void {
@@ -359,30 +325,30 @@ export class ShaderCanvas extends HTMLElement {
     );
   }
 
-  private activatePlugins(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const promises: Promise<void>[] = [];
-      for (const pluginFactory of ShaderCanvas.plugins) {
-        if (this.canvas && this.gl && this.program) {
-          const plugin = pluginFactory();
-          if (!this.activePlugins.find((item) => item.name === plugin.name)) {
-            this.activePlugins.push(plugin);
-            promises.push(
-              plugin.setup(this, this.gl, this.program, this.canvas)
-            );
-          }
+  private deactivatePlugins(): void {
+    for (const activePlug of this.activePlugins) {
+      activePlug.dispose();
+    }
+  }
+
+  private activatePlugins(): void {
+    for (const pluginFactory of ShaderCanvas.plugins) {
+      if (this.canvas && this.gl && this.program) {
+        const plugin = pluginFactory();
+        if (!this.activePlugins.find((item) => item.name === plugin.name)) {
+          this.activePlugins.push(plugin);
+          plugin.setup(this, this.gl, this.program, this.canvas);
         }
       }
-      Promise.all(promises)
-        .then(() => resolve())
-        .catch((err) => reject(err));
-    });
+    }
   }
 
   reinitialize() {
+    this.deactivatePlugins();
     this.deleteProgramAndBuffers();
     this.createPrograms();
     this.createBuffers();
+    this.activatePlugins();
     this.onResize();
   }
 
@@ -403,7 +369,6 @@ export class ShaderCanvas extends HTMLElement {
       cancelAnimationFrame(this.frame);
     }
     this.frame = -1;
-    this.initListeners = [];
     this.initialized = false;
     if (this.prefersReducedMotion) {
       this.prefersReducedMotion.removeEventListener(
@@ -413,13 +378,10 @@ export class ShaderCanvas extends HTMLElement {
       );
     }
     this.watch.reset();
-    for (const activePlug of this.activePlugins) {
-      activePlug.dispose();
-    }
+    this.deactivatePlugins();
     window.removeEventListener('resize', this.onResize, false);
     window.removeEventListener('mousemove', this.onMouseMove, false);
     this.deleteProgramAndBuffers();
-
     if (this.gl) {
       const loseCtx = this.gl.getExtension('WEBGL_lose_context');
       if (loseCtx && typeof loseCtx.loseContext === 'function') {
@@ -427,12 +389,10 @@ export class ShaderCanvas extends HTMLElement {
       }
       this.gl = null;
     }
-
     if (this.canvas) {
       this.removeChild(this.canvas);
       this.canvas = null;
     }
-
     this.buffers = {};
   }
 }
