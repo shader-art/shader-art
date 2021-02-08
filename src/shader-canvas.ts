@@ -1,5 +1,8 @@
 import { prefersReducedMotion } from './mediaquery';
-import { ShaderCanvasPlugin } from './plugins/shader-canvas-plugin';
+import {
+  ShaderCanvasPlugin,
+  ShaderCanvasPluginFactory,
+} from './plugins/shader-canvas-plugin';
 import { Stopwatch } from './stopwatch';
 
 export type ShaderCanvasBuffer = {
@@ -24,27 +27,23 @@ const DEFAULT_FRAG = HEADER + 'void main(){gl_FragColor=vec4(1.,0,0,1.);}';
 export class ShaderCanvas extends HTMLElement {
   buffers: Record<string, ShaderCanvasBuffer> = {};
   prefersReducedMotion: MediaQueryList;
-  canvas: HTMLCanvasElement | null;
-  gl: WebGLRenderingContext | WebGL2RenderingContext | null;
-  program: WebGLProgram | null;
+  canvas: HTMLCanvasElement | null = null;
+  initialized = false;
+  gl: WebGLRenderingContext | WebGL2RenderingContext | null = null;
+  program: WebGLProgram | null = null;
   frame: number = -1;
   count: number = 0;
   fragCode: string = '';
   vertCode: string = '';
-  fragShader: WebGLShader | null;
-  vertShader: WebGLShader | null;
+  fragShader: WebGLShader | null = null;
+  vertShader: WebGLShader | null = null;
   watch: Stopwatch;
-  private activePlugins: ShaderCanvasPlugin[];
+  activePlugins: ShaderCanvasPlugin[] = [];
+  initListeners: ((err?: any) => void)[] = [];
 
   constructor() {
     super();
-    this.canvas = null;
-    this.gl = null;
-    this.program = null;
     this.prefersReducedMotion = prefersReducedMotion();
-    this.fragShader = null;
-    this.vertShader = null;
-    this.activePlugins = [];
     this.onResize = this.onResize.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
     this.renderLoop = this.renderLoop.bind(this);
@@ -53,7 +52,10 @@ export class ShaderCanvas extends HTMLElement {
     this.watch = new Stopwatch();
   }
 
-  static register() {
+  static plugins: ShaderCanvasPluginFactory[] = [];
+
+  static register(plugins: ShaderCanvasPluginFactory[] = []) {
+    ShaderCanvas.plugins = plugins;
     if (typeof customElements.get('shader-canvas') === 'undefined') {
       customElements.define('shader-canvas', ShaderCanvas);
     }
@@ -129,6 +131,29 @@ export class ShaderCanvas extends HTMLElement {
       this.frame = requestAnimationFrame(this.renderLoop);
       this.watch.start();
     }
+  }
+
+  whenInitialized(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.initialized) {
+        resolve();
+        return;
+      }
+      this.initListeners.push((err?: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  private notifyInitListeners(err?: any) {
+    for (const initCallback of this.initListeners) {
+      initCallback(err);
+    }
+    this.initListeners = [];
   }
 
   /**
@@ -302,11 +327,13 @@ export class ShaderCanvas extends HTMLElement {
         this.canvas.getContext('webgl') ||
         this.canvas.getContext('experimental-webgl');
       if (!this.gl) {
-        reject(new Error('WebGL not supported'));
+        const err = new Error('WebGL not supported');
+        this.notifyInitListeners(err);
+        reject(err);
+        return;
       }
       this.createPrograms();
       this.createBuffers();
-      this.activatePlugins();
       this.onResize();
       this.prefersReducedMotion = prefersReducedMotion();
       this.render();
@@ -314,7 +341,11 @@ export class ShaderCanvas extends HTMLElement {
       if (this.autoPlay) {
         this.playState = 'running';
       }
-      resolve();
+      this.activatePlugins().then(() => {
+        this.notifyInitListeners();
+        this.initialized = true;
+        resolve();
+      });
     });
   }
 
@@ -328,19 +359,24 @@ export class ShaderCanvas extends HTMLElement {
     );
   }
 
-  private activatePlugins(): void {
-    if (!window.ShaderCanvasPlugins) {
-      return;
-    }
-    for (const Plugin of Object.values(window.ShaderCanvasPlugins)) {
-      if (this.canvas && this.gl && this.program) {
-        const plug = new Plugin();
-        if (!this.activePlugins.find((item) => item.name === plug.name)) {
-          this.activePlugins.push(plug);
-          plug.setup(this, this.gl, this.program, this.canvas);
+  private activatePlugins(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const promises: Promise<void>[] = [];
+      for (const pluginFactory of ShaderCanvas.plugins) {
+        if (this.canvas && this.gl && this.program) {
+          const plugin = pluginFactory();
+          if (!this.activePlugins.find((item) => item.name === plugin.name)) {
+            this.activePlugins.push(plugin);
+            promises.push(
+              plugin.setup(this, this.gl, this.program, this.canvas)
+            );
+          }
         }
       }
-    }
+      Promise.all(promises)
+        .then(() => resolve())
+        .catch((err) => reject(err));
+    });
   }
 
   reinitialize() {
@@ -367,6 +403,8 @@ export class ShaderCanvas extends HTMLElement {
       cancelAnimationFrame(this.frame);
     }
     this.frame = -1;
+    this.initListeners = [];
+    this.initialized = false;
     if (this.prefersReducedMotion) {
       this.prefersReducedMotion.removeEventListener(
         'change',
@@ -398,5 +436,3 @@ export class ShaderCanvas extends HTMLElement {
     this.buffers = {};
   }
 }
-
-ShaderCanvas.register();

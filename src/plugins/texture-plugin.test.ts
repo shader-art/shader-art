@@ -1,26 +1,165 @@
-import './texture-plugin';
-import '../shader-canvas';
+import { ShaderCanvasPlugin } from './shader-canvas-plugin';
+import { TexturePlugin, TexturePluginFactory } from './texture-plugin';
+import { ShaderCanvas } from '../shader-canvas';
 import '../test-utils/browser-shims';
-import { resetMediaQueryListeners } from '../test-utils/browser-shims';
-import { TexturePlugin } from './texture-plugin';
+
+const html = (x: any) => x;
+
+function asynced(fn: (...args: any[]) => void, timeout = 0): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      fn();
+      resolve();
+    }, timeout);
+  });
+}
+
+const testTexture = (
+  name = 'texture',
+  src = 'https://placekitten.com/128/128',
+  idx = 0
+) => `<sc-texture
+  src="${src}"
+  name="${name}"
+  idx="${idx}"
+  wrap-s="clamp-to-edge"
+  wrap-t="clamp-to-edge"
+  min-filter="nearest"
+  mag-filter="nearest"
+></sc-texture>`;
+
+const vertexShader = html`
+  <script type="vert">
+    precision highp float;
+    attribute vec4 position;
+    void main() {
+      gl_Position = position;
+    }
+  </script>
+`;
+
+const fragmentShader = html`
+  <script type="frag">
+    precision highp float;
+    uniform vec2 resolution;
+    unifrom texture2D texture;
+    void main() {
+      vec2 p = gl_FragCoord.xy / resolution;
+      gl_FragColor = texture2D(texture, p);
+    }
+  </script>
+`;
+
+const createShaderCanvas = (html: string): ShaderCanvas => {
+  const element = document.createElement('shader-canvas');
+  element.setAttribute('autoplay', '');
+  element.innerHTML = html;
+  document.body.appendChild(element);
+  return element as ShaderCanvas;
+};
+
+class ImageMockOnLoad extends Image {
+  constructor() {
+    super();
+    setTimeout(() => {
+      const ev = new Event('load');
+      this.dispatchEvent(ev);
+    }, 0);
+  }
+}
 
 describe('TexturePlugin tests', () => {
-  beforeEach(() => {
-    resetMediaQueryListeners();
-    const element = document.createElement('shader-canvas');
-    element.setAttribute('autoplay', '');
-    document.body.appendChild(element);
+  const originalImage = global.Image;
+
+  beforeAll(() => {
+    global.Image = ImageMockOnLoad;
+    ShaderCanvas.register([TexturePluginFactory]);
   });
 
-  test('TexturePlugin was globally added to window.ShaderCanvasPlugins', () => {
-    expect(window.ShaderCanvasPlugins).toBeDefined();
-    expect(Object.values(window.ShaderCanvasPlugins)).toContain(TexturePlugin);
+  afterAll(() => {
+    global.Image = originalImage;
   });
 
+  test('shader-canvas has loaded the TexturePlugin', () => {
+    expect(ShaderCanvas.plugins).toContain(TexturePluginFactory);
+  });
+
+  test('test if the test environment supports loading images', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const img = new Image();
+      img.src = 'https://placekitten.com/128/128';
+      img.onload = () => {
+        resolve();
+      };
+      img.onerror = () => {
+        reject();
+      };
+    });
+  });
+
+  test('test if the test environment supports MutationObserver', async () => {
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    let mutated = false;
+    const observer = new MutationObserver((mutations) => {
+      mutated = true;
+    });
+    observer.observe(div, { subtree: true, childList: true });
+    const p = document.createElement('p');
+    p.textContent = 'Hi';
+    div.appendChild(p);
+    await asynced(() => {
+      expect(mutated).toBe(true);
+    }, 10);
+  });
+
+  test('shader-canvas creation', () => {
+    const element = createShaderCanvas(
+      testTexture() + vertexShader + fragmentShader
+    );
+    expect(element).toBeDefined();
+    expect(element.canvas).toBeInstanceOf(HTMLCanvasElement);
+    expect(
+      element.activePlugins.map((p: ShaderCanvasPlugin) => p.name)
+    ).toContain('TexturePlugin');
+  });
+
+  test('shader-canvas defines a texture', async () => {
+    const element = createShaderCanvas(
+      testTexture() + vertexShader + fragmentShader
+    );
+    const texturePlugin = element.activePlugins.find(
+      (p) => p.name === 'TexturePlugin'
+    );
+    expect(texturePlugin).toBeDefined();
+    expect(texturePlugin).toBeInstanceOf(TexturePlugin);
+    await element.whenInitialized();
+    const textureState = (<TexturePlugin>texturePlugin)?.textureState;
+    expect(Object.keys(textureState)).toContain('texture');
+  });
+  /*
+  test('shader-canvas defines a texture, even when the dom is modified afterwards', async () => {
+    const element = createShaderCanvas(vertexShader + fragmentShader);
+    const texturePlugin = element.activePlugins.find(
+      (p) => p.name === 'TexturePlugin'
+    );
+    expect(texturePlugin).toBeDefined();
+    expect(texturePlugin).toBeInstanceOf(TexturePlugin);
+    await element.whenInitialized();
+    const scTexture = document.createElement('sc-texture');
+    scTexture.setAttribute('src', '${src}');
+    scTexture.setAttribute('name', '${name}');
+    scTexture.setAttribute('idx', '${idx}');
+    element.appendChild(scTexture);
+    await (<TexturePlugin>texturePlugin).whenImagesLoaded();
+    const textureState = (<TexturePlugin>texturePlugin)?.textureState;
+    expect(Object.keys(textureState)).toContain('texture');
+  });
+*/
   afterEach(() => {
-    const element = document.querySelector('shader-canvas');
-    if (element) {
-      element.remove();
+    const sc = document.querySelector('shader-canvas');
+    if (sc) {
+      sc.remove();
     }
   });
 });

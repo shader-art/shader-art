@@ -1,8 +1,5 @@
 import { loadImage } from '../utils/image-loader';
-import {
-  ShaderCanvasPlugin,
-  ShaderCanvasPluginBase,
-} from './shader-canvas-plugin';
+import { ShaderCanvasPlugin } from './shader-canvas-plugin';
 
 export interface ShaderCanvasTexture {
   src: string;
@@ -16,11 +13,11 @@ export interface ShaderCanvasTextureState extends ShaderCanvasTexture {
   uniformLoc: WebGLUniformLocation | null;
   texture: WebGLTexture | null;
 }
-
-export const TexturePlugin: ShaderCanvasPluginBase = class TexturePlugin
-  implements ShaderCanvasPlugin {
+export class TexturePlugin implements ShaderCanvasPlugin {
   name = 'TexturePlugin';
   initialized = false;
+  imagesLoaded = false;
+  onLoadListeners: ((err?: any) => void)[] = [];
   observer: MutationObserver | null = null;
 
   textureState: Record<string, ShaderCanvasTextureState> = {};
@@ -37,56 +34,99 @@ export const TexturePlugin: ShaderCanvasPluginBase = class TexturePlugin
     gl: WebGLRenderingContext | WebGL2RenderingContext,
     program: WebGLProgram,
     canvas: HTMLCanvasElement
-  ) {
-    this.hostElement = hostElement;
-    this.gl = gl;
-    this.program = program;
-    this.canvas = canvas;
-    // The texture plugin looks for <sc-texture> elements
-    this.observer = new MutationObserver((mutations) => {
-      const enter: ShaderCanvasTexture[] = [];
-      const update: ShaderCanvasTexture[] = [];
-      for (const mutation of mutations) {
-        if (mutation.target instanceof HTMLElement) {
-          if (mutation.type === 'attributes') {
-            // a texture got updated
-            update.push(this.getTextureMetaData(mutation.target));
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.hostElement = hostElement;
+      this.gl = gl;
+      this.program = program;
+      this.canvas = canvas;
+      // The texture plugin looks for <sc-texture> elements
+      this.observer = new MutationObserver((mutations) => {
+        const enter: ShaderCanvasTexture[] = [];
+        const update: ShaderCanvasTexture[] = [];
+        for (const mutation of mutations) {
+          if (mutation.target instanceof HTMLElement) {
+            if (mutation.type === 'attributes') {
+              // a texture got updated
+              update.push(this.getTextureMetaData(mutation.target));
+            }
+            if (
+              mutation.type === 'childList' &&
+              mutation.target.nodeName === 'SC-TEXTURE'
+            ) {
+              // a new texture was added
+              enter.push(this.getTextureMetaData(mutation.target));
+            }
+            this.uploadTextures(enter, update);
           }
-          if (mutation.type === 'childList') {
-            // a new texture was added
-            enter.push(this.getTextureMetaData(mutation.target));
-          }
-          this.uploadTextures(enter, update);
         }
-      }
+      });
+      this.observer.observe(this.hostElement, {
+        childList: true,
+        attributes: true,
+        subtree: true,
+        attributeFilter: ['src'],
+      });
+      const enter = [
+        ...this.hostElement.querySelectorAll('sc-texture'),
+      ].map((element) => this.getTextureMetaData(element as HTMLElement));
+      this.uploadTextures(enter, [])
+        .then(() => {
+          resolve();
+        })
+        .catch((err) => {
+          reject(err);
+        });
     });
-    this.observer.observe(this.hostElement, {
-      childList: true,
-      attributes: true,
-      subtree: true,
-      attributeFilter: ['src'],
-    });
-    const enter = [
-      ...this.hostElement.querySelectorAll('sc-texture'),
-    ].map((element) => this.getTextureMetaData(element as HTMLElement));
-    this.uploadTextures(enter, []);
   }
 
-  public dispose() {
-    if (!this.gl) {
-      return;
-    }
-    for (const tex of Object.values(this.textureState)) {
-      if (tex.texture !== null) {
-        this.gl.deleteTexture(tex.texture);
+  whenImagesLoaded(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.imagesLoaded) {
+        resolve();
+        return;
       }
+      this.onLoadListeners.push((err?: any) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    });
+  }
+
+  notifyImagesLoaded(err?: any) {
+    for (const onLoadCallback of this.onLoadListeners) {
+      onLoadCallback(err);
     }
-    this.textureState = {};
-    if (this.observer) {
-      this.observer.takeRecords();
-      this.observer.disconnect();
-      this.observer = null;
-    }
+    this.onLoadListeners = [];
+  }
+
+  public dispose(): Promise<void> {
+    return new Promise((resolve) => {
+      this.onLoadListeners = [];
+      if (!this.gl) {
+        resolve();
+        return;
+      }
+      for (const tex of Object.values(this.textureState)) {
+        if (tex.texture !== null) {
+          this.gl.deleteTexture(tex.texture);
+        }
+      }
+      this.textureState = {};
+      if (this.observer) {
+        this.observer.takeRecords();
+        this.observer.disconnect();
+        this.observer = null;
+      }
+      this.gl = null;
+      this.hostElement = null;
+      this.canvas = null;
+      this.program = null;
+      resolve();
+    });
   }
 
   private getTextureMetaData(element: HTMLElement): ShaderCanvasTexture {
@@ -116,20 +156,19 @@ export const TexturePlugin: ShaderCanvasPluginBase = class TexturePlugin
       const textureImages: Record<string, HTMLImageElement> = {};
       for (const texture of textures) {
         if (!textureImages[texture.src]) {
-          queue.push(
-            loadImage(texture.src)
-              .then((image) => {
-                textureImages[texture.src] = image;
-              })
-              .catch((err) => {
-                reject(err);
-              })
-          );
+          queue.push(loadImage(texture.src));
         }
       }
-      Promise.all(queue).then(() => {
-        resolve(textureImages);
-      });
+      Promise.all(queue)
+        .then((images: HTMLImageElement[]) => {
+          for (const img of images) {
+            textureImages[img.src] = img;
+          }
+          resolve(textureImages);
+        })
+        .catch((err) => {
+          reject(err);
+        });
     });
   }
 
@@ -151,7 +190,7 @@ export const TexturePlugin: ShaderCanvasPluginBase = class TexturePlugin
   }
 
   /**
-   * upload textures to GPU
+   * load all images and upload to GPU
    *
    * @param textures
    */
@@ -159,6 +198,7 @@ export const TexturePlugin: ShaderCanvasPluginBase = class TexturePlugin
     enter: ShaderCanvasTexture[],
     update: ShaderCanvasTexture[]
   ): Promise<void> {
+    this.imagesLoaded = false;
     return new Promise<void>((resolve, reject) => {
       const { gl, program } = this;
       if (!gl || !program) {
@@ -230,15 +270,16 @@ export const TexturePlugin: ShaderCanvasPluginBase = class TexturePlugin
             }
             this.textureState[item.name].image = image;
           });
+          this.imagesLoaded = true;
+          this.notifyImagesLoaded();
+          resolve();
         })
         .catch((err) => {
+          this.notifyImagesLoaded(err);
           reject(err);
         });
     });
   }
-};
-
-if (!window.ShaderCanvasPlugins) {
-  window.ShaderCanvasPlugins = {};
 }
-window.ShaderCanvasPlugins['TexturePlugin'] = TexturePlugin;
+
+export const TexturePluginFactory = () => new TexturePlugin();

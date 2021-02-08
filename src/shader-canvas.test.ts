@@ -1,3 +1,4 @@
+import { ShaderCanvasPlugin } from './plugins/shader-canvas-plugin';
 import './shader-canvas';
 import { ShaderCanvas } from './shader-canvas';
 import './test-utils/browser-shims';
@@ -6,7 +7,28 @@ import {
   resetMediaQueryListeners,
 } from './test-utils/browser-shims';
 
+class DummyPlugin implements ShaderCanvasPlugin {
+  name = 'DummyPlugin';
+  registered = false;
+
+  setup(): Promise<void> {
+    return new Promise((resolve) => {
+      this.registered = true;
+      resolve();
+    });
+  }
+
+  dispose(): Promise<void> {
+    return new Promise((resolve) => {
+      this.registered = false;
+      resolve();
+    });
+  }
+}
+
 describe('shader-canvas tests without any configuration', () => {
+  beforeAll(() => ShaderCanvas.register([() => new DummyPlugin()]));
+
   beforeEach(() => {
     resetMediaQueryListeners();
     const element = document.createElement('shader-canvas');
@@ -34,6 +56,18 @@ describe('shader-canvas tests without any configuration', () => {
     expect(element).toBeDefined();
     const shaderCanvasElement = <ShaderCanvas>element;
     expect(shaderCanvasElement.gl).toBeInstanceOf(WebGLRenderingContext);
+  });
+
+  test('shader-canvas registers specified plugins', () => {
+    const element = document.querySelector('shader-canvas');
+    expect(element).toBeDefined();
+    const shaderCanvasElement = <ShaderCanvas>element;
+    const dummyPlugin = shaderCanvasElement.activePlugins.find(
+      (p) => p.name === 'DummyPlugin'
+    );
+    expect(dummyPlugin).toBeDefined();
+    expect(dummyPlugin).toBeInstanceOf(DummyPlugin);
+    expect((<DummyPlugin>dummyPlugin)?.registered).toBe(true);
   });
 
   test('shader-canvas creates a position buffer', () => {
