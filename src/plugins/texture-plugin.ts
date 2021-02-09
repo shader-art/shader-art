@@ -17,7 +17,7 @@ export class TexturePlugin implements ShaderCanvasPlugin {
   name = 'TexturePlugin';
   initialized = false;
   imagesLoaded = false;
-  onLoadListeners: ((err?: any) => void)[] = [];
+  indexCounter = 0;
   observer: MutationObserver | null = null;
 
   textureState: Record<string, ShaderCanvasTextureState> = {};
@@ -39,7 +39,8 @@ export class TexturePlugin implements ShaderCanvasPlugin {
     this.gl = gl;
     this.program = program;
     this.canvas = canvas;
-    // The texture plugin looks for <sc-texture> elements
+    this.indexCounter = 0;
+    // The texture plugin looks for <IMG> elements
     this.observer = new MutationObserver((mutations) => {
       this.imagesLoaded = false;
       const enter: ShaderCanvasTexture[] = [];
@@ -54,7 +55,7 @@ export class TexturePlugin implements ShaderCanvasPlugin {
             for (const node of mutation.addedNodes) {
               if (
                 node.nodeType === Node.ELEMENT_NODE &&
-                node.nodeName === 'SC-TEXTURE'
+                node.nodeName === 'IMG'
               ) {
                 // a new texture was added
                 enter.push(this.getTextureMetaData(node as HTMLElement));
@@ -71,9 +72,9 @@ export class TexturePlugin implements ShaderCanvasPlugin {
       subtree: true,
       attributeFilter: ['src'],
     });
-    const enter = [
-      ...this.hostElement.querySelectorAll('sc-texture'),
-    ].map((element) => this.getTextureMetaData(element as HTMLElement));
+    const enter = [...this.hostElement.querySelectorAll('img')].map((element) =>
+      this.getTextureMetaData(element as HTMLElement)
+    );
     this.loadImagesAndUpload(enter, []);
   }
 
@@ -83,28 +84,28 @@ export class TexturePlugin implements ShaderCanvasPlugin {
         resolve();
         return;
       }
-      this.onLoadListeners.push((err?: any) => {
-        if (err) {
-          reject(err);
-          return;
+      this.hostElement?.addEventListener(
+        'textureload',
+        ((e: CustomEvent) => {
+          const { error } = e.detail;
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        }) as EventListener,
+        {
+          once: true,
         }
-        resolve();
-      });
+      );
     });
   }
 
-  notifyImagesLoaded(err?: any) {
-    for (const onLoadCallback of this.onLoadListeners) {
-      onLoadCallback(err);
-    }
-    this.onLoadListeners = [];
-  }
-
   public dispose(): void {
-    this.onLoadListeners = [];
     if (!this.gl) {
       return;
     }
+    this.indexCounter = 0;
     for (const tex of Object.values(this.textureState)) {
       if (tex.texture !== null) {
         this.gl.deleteTexture(tex.texture);
@@ -124,7 +125,7 @@ export class TexturePlugin implements ShaderCanvasPlugin {
 
   private getTextureMetaData(element: HTMLElement): ShaderCanvasTexture {
     const attribs: Record<string, string>[] = [...element.attributes]
-      .filter((attr) => ['idx', 'src', 'name'].indexOf(attr.name) === -1)
+      .filter((attr) => ['src', 'name'].indexOf(attr.name) === -1)
       .map((attr) => ({
         [attr.name]: attr.value,
       }));
@@ -132,13 +133,14 @@ export class TexturePlugin implements ShaderCanvasPlugin {
       {},
       ...attribs,
     ]);
-
-    return {
-      idx: parseInt(element.getAttribute('idx') || '0', 10),
-      src: element.getAttribute('src') || '',
-      name: element.getAttribute('name') || '',
-      options,
-    };
+    const name = element.getAttribute('name') || '';
+    const src = element.getAttribute('src') || '';
+    let idx = this.textureState[name]?.idx;
+    if (typeof idx === 'undefined' || isNaN(idx)) {
+      idx = this.indexCounter;
+      this.indexCounter++;
+    }
+    return { idx, src, name, options };
   }
 
   private loadTextures(
@@ -197,12 +199,16 @@ export class TexturePlugin implements ShaderCanvasPlugin {
         .then((textureImages) => {
           this.uploadTextures(textureImages, enter, update);
           this.imagesLoaded = true;
-          this.notifyImagesLoaded();
+          this.hostElement?.dispatchEvent(
+            new CustomEvent('textureload', { detail: { error: null } })
+          );
           resolve();
         })
-        .catch((err) => {
-          this.notifyImagesLoaded(err);
-          reject(err);
+        .catch((error) => {
+          this.hostElement?.dispatchEvent(
+            new CustomEvent('textureload', { detail: { error } })
+          );
+          reject(error);
         });
     });
   }

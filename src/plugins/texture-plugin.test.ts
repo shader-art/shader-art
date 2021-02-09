@@ -16,17 +16,16 @@ function asynced(fn: (...args: any[]) => void, timeout = 0): Promise<void> {
 
 const testTexture = (
   name = 'texture',
-  src = 'https://placekitten.com/128/128',
-  idx = 0
-) => `<sc-texture
+  src = 'https://placekitten.com/128/128'
+) => `<img
   src="${src}"
   name="${name}"
-  idx="${idx}"
   wrap-s="clamp-to-edge"
   wrap-t="clamp-to-edge"
   min-filter="nearest"
   mag-filter="nearest"
-></sc-texture>`;
+  hidden
+>`;
 
 const vertexShader = html`
   <script type="vert">
@@ -61,16 +60,11 @@ const createShaderCanvas = (html: string): ShaderCanvas => {
 class ImageMockOnLoad extends Image {
   constructor(width?: number, height?: number) {
     super(width, height);
-  }
-  _src = '';
-  set src(value: string) {
-    /* TODO doesnt work :( */
-    this._src = value;
-    // mimic image CDN behavior, a url ending with /:width/:height
+    // mimic placeholder image provider behavior, a url ending with /:width/:height
     // returns an image with the according width and height
     const sizeRoute = /(\d+)\/(\d+)\/?$/;
     setTimeout(() => {
-      const matches = value.match(sizeRoute);
+      const matches = this.src.match(sizeRoute);
       if (matches) {
         this.width = parseInt(matches[1], 10);
         this.height = parseInt(matches[2], 10);
@@ -78,10 +72,6 @@ class ImageMockOnLoad extends Image {
       const ev = new Event('load');
       this.dispatchEvent(ev);
     }, 50);
-  }
-
-  get src() {
-    return this._src;
   }
 }
 
@@ -104,8 +94,10 @@ describe('TexturePlugin tests', () => {
   test('test if the test environment supports loading images', async () => {
     await new Promise<void>((resolve, reject) => {
       const img = new Image();
-      img.src = 'https://placekitten.com/128/128';
+      img.src = 'https://placekitten.com/128/136';
       img.onload = () => {
+        expect(img.width).toBe(128);
+        expect(img.height).toBe(136);
         resolve();
       };
       img.onerror = () => {
@@ -167,15 +159,23 @@ describe('TexturePlugin tests', () => {
     const textureState = (<TexturePlugin>texturePlugin)?.textureState;
     expect(Object.keys(textureState)).toContain('texture');
 
-    const scTexture = element.querySelector('sc-texture');
-    expect(scTexture).toBeDefined();
-    scTexture?.setAttribute('src', 'https://lorempicsum.com/128/128');
+    const img = element.querySelector('img');
+    expect(img).toBeDefined();
+    img?.setAttribute('src', 'https://picsum.photos/128/128');
     await asynced(() => {}, 0);
     expect((<TexturePlugin>texturePlugin).imagesLoaded).toBe(false);
     await (<TexturePlugin>texturePlugin).whenImagesLoaded();
-    const newTextureState = (<TexturePlugin>texturePlugin)?.textureState;
+    let newTextureState = (<TexturePlugin>texturePlugin)?.textureState;
     expect(Object.keys(newTextureState)).toContain('texture');
-    expect(newTextureState.texture.src).toBe('https://lorempicsum.com/128/128');
+    expect(newTextureState.texture.src).toBe('https://picsum.photos/128/128');
+
+    img?.setAttribute('src', 'https://picsum.photos/135/124');
+    await asynced(() => {}, 0);
+    expect((<TexturePlugin>texturePlugin).imagesLoaded).toBe(false);
+    await (<TexturePlugin>texturePlugin).whenImagesLoaded();
+    newTextureState = (<TexturePlugin>texturePlugin)?.textureState;
+    expect(Object.keys(newTextureState)).toContain('texture');
+    expect(newTextureState.texture.src).toBe('https://picsum.photos/135/124');
   });
 
   test('shader-canvas defines a texture and then loads another one when the dom is modified afterwards', async () => {
@@ -186,17 +186,19 @@ describe('TexturePlugin tests', () => {
     expect(texturePlugin).toBeDefined();
     expect(texturePlugin).toBeInstanceOf(TexturePlugin);
     await (<TexturePlugin>texturePlugin).whenImagesLoaded();
-    const scTexture = document.createElement('sc-texture');
+    const img = document.createElement('img');
 
-    scTexture.setAttribute('src', 'https://placekitten.com/128/128');
-    scTexture.setAttribute('name', 'texture');
-    scTexture.setAttribute('idx', '0');
-    element.appendChild(scTexture);
+    img.setAttribute('src', 'https://placekitten.com/128/128');
+    img.setAttribute('name', 'texture');
+    element.appendChild(img);
+
+    // let MutationObserver do its thing
     await asynced(() => {}, 0);
     expect((<TexturePlugin>texturePlugin).imagesLoaded).toBe(false);
     await (<TexturePlugin>texturePlugin).whenImagesLoaded();
     const textureState = (<TexturePlugin>texturePlugin)?.textureState;
     expect(Object.keys(textureState)).toContain('texture');
+    expect(textureState.texture.src).toBe('https://placekitten.com/128/128');
   });
 
   afterEach(() => {
