@@ -18,6 +18,7 @@
     "dev:demos": "concurrently 'npm:watch:demos' 'npm:serve:demos'",
     "test": "jest"
   },
+  "types": "./dist/shader-art.d.ts",
   "keywords": [
     "webgl",
     "creative-coding"
@@ -32,7 +33,7 @@
       "import": "./dist/shader-art.esm.min.js",
       "require": "./dist/shader-art.umd.min.js"
     },
-    "./plugins/texture": {
+    "./plugins/texture-plugin": {
       "import": "./dist/plugins/texture-plugin.esm.min.js",
       "require": "./dist/plugins/texture-plugin.umd.min.js"
     }
