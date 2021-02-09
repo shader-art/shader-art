@@ -2,44 +2,52 @@
 
 The `<shader-art>` component is a web component that creates a WebGL canvas, running a shader animation.
 
-## Buffer definitions
+## Getting started
 
-By default, shader-art provides a `position` buffer, containing 2 triangles filling up the whole clipping space from (-1, -1) to (1, 1).
+```sh
+npm i shader-art
+```
 
-The `position` buffer can be accessed via the `attribute vec4 position` attribute in the vertex shader.
+### JS:
 
-## Adding shaders
+```js
+import { ShaderArt } from 'https://cdn.skypack.dev/shader-art';
+
+ShaderArt.register();
+```
+
+### CSS:
+
+```css
+shader-art {
+  display: block;
+  width: 100vmin;
+  height: 100vmin;
+}
+```
+
+### HTML:
 
 ```html
-<shader-art>
+<shader-art autoplay>
   <script type="vert">
+    precision highp float;
     attribute vec4 position;
     void main() {
       gl_Position = position;
     }
   </script>
+
   <script type="frag">
+    precision highp float;
+    uniform float time;
+    uniform vec2 resolution;
     void main() {
-      gl_FragColor = vec4(1., 0., 0., 1.);
+      float t = time * 1e-3;
+      vec2 p = gl_FragCoord.xy / resolution;
+      vec3 color = vec3(1.0, sin(p.x + t * 2.), sin(p.y + t));
+      gl_FragColor=vec4(color, 1.0);
     }
-  </script>
-</shader-art>
-```
-
-## Adding textures
-
-(work in progress here)
-
-```html
-<shader-art>
-  <texture
-    src="https://placekitten.com/128/128"
-    name="kitten"
-    stretch-x
-    stretch-y
-  ></texture>
-  <script type="frag">
-    uniform sampler2D kitten;
   </script>
 </shader-art>
 ```
@@ -49,6 +57,8 @@ The `position` buffer can be accessed via the `attribute vec4 position` attribut
 - `uniform float time`: number of ticks passed
 - `uniform vec2 resolution`: resolution of the canvas
 
-## Demos
+## Adding textures
 
-`npm run dev:demos`
+Texture support can be added via a TexturePlugin.
+
+- [Live Demo on CodePen](https://codepen.io/terabaud/pen/xxROeRJ)
