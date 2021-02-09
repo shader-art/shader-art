@@ -5,23 +5,28 @@
   "engines": {
     "node": ">=12"
   },
+  "repository": "terabaud/shader-art/",
+  "author": "Lea Rosema",
+  "license": "MIT",
+  "types": "./dist/shader-art.d.ts",
+  "module": "./dist/shader-art.esm.min.js",
+  "main": "./dist/shader-art.umd.min.js",
   "scripts": {
-    "build:types": "./scripts/minify.sh",
+    "build:types": "./scripts/types.sh",
     "build:js": "rollup -c rollup.config.js",
     "build:min": "./scripts/minify.sh",
     "build": "npm run build:js -s && npm run build:min -s && npm run build:types -s",
     "test": "jest"
   },
-  "types": "./dist/shader-art.d.ts",
   "keywords": [
     "webgl",
+    "glsl",
     "creative-coding"
   ],
   "files": [
     "dist",
     "dist/plugins"
   ],
-  "module": "./dist/shader-art.esm.min.js",
   "exports": {
     ".": {
       "import": "./dist/shader-art.esm.min.js",
@@ -32,8 +37,6 @@
       "require": "./dist/plugins/texture-plugin.umd.min.js"
     }
   },
-  "author": "Lea Rosema",
-  "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-typescript": "^8.1.0",
     "@types/jest": "^26.0.20",
