@@ -1,41 +1,30 @@
+import { ShaderCanvasPlugin } from './plugins/shader-canvas-plugin';
 import './shader-canvas';
 import { ShaderCanvas } from './shader-canvas';
+import './test-utils/browser-shims';
+import {
+  setMediaQuery,
+  resetMediaQueryListeners,
+} from './test-utils/browser-shims';
 
-let LISTENERS: any[] = [];
-let mediaQueryMatches = false;
+class DummyPlugin implements ShaderCanvasPlugin {
+  name = 'DummyPlugin';
+  registered = false;
 
-// simulate dispatching a change event for window.matchMedia
-const notifyMediaQueryChangeListeners = () => {
-  LISTENERS.forEach((listener) => {
-    if (typeof listener === 'function') {
-      listener();
-    }
-  });
-};
+  setup(): void {
+    this.registered = true;
+  }
 
-//@ts-ignore window.devicePixelRatio shim
-window.devicePixelRatio = 2;
-
-// matchMedia shim (safari style)
-window.matchMedia = () =>
-  (<unknown>{
-    get matches() {
-      return mediaQueryMatches;
-    },
-    addListener(fn: any) {
-      LISTENERS.push(fn);
-    },
-    removeListener(fn: any) {
-      const idx = LISTENERS.indexOf(fn);
-      if (idx >= 0) {
-        LISTENERS.splice(idx, 1);
-      }
-    },
-  }) as MediaQueryList;
+  dispose(): void {
+    this.registered = false;
+  }
+}
 
 describe('shader-canvas tests without any configuration', () => {
+  beforeAll(() => ShaderCanvas.register([() => new DummyPlugin()]));
+
   beforeEach(() => {
-    LISTENERS = [];
+    resetMediaQueryListeners();
     const element = document.createElement('shader-canvas');
     element.setAttribute('autoplay', '');
     document.body.appendChild(element);
@@ -61,6 +50,18 @@ describe('shader-canvas tests without any configuration', () => {
     expect(element).toBeDefined();
     const shaderCanvasElement = <ShaderCanvas>element;
     expect(shaderCanvasElement.gl).toBeInstanceOf(WebGLRenderingContext);
+  });
+
+  test('shader-canvas registers specified plugins', () => {
+    const element = document.querySelector('shader-canvas');
+    expect(element).toBeDefined();
+    const shaderCanvasElement = <ShaderCanvas>element;
+    const dummyPlugin = shaderCanvasElement.activePlugins.find(
+      (p) => p.name === 'DummyPlugin'
+    );
+    expect(dummyPlugin).toBeDefined();
+    expect(dummyPlugin).toBeInstanceOf(DummyPlugin);
+    expect((<DummyPlugin>dummyPlugin)?.registered).toBe(true);
   });
 
   test('shader-canvas creates a position buffer', () => {
@@ -96,13 +97,11 @@ describe('shader-canvas tests without any configuration', () => {
     expect(shaderCanvasElement.playState).toBe('running');
 
     // enable reduced motion
-    mediaQueryMatches = true;
-    notifyMediaQueryChangeListeners();
+    setMediaQuery(true);
     expect(shaderCanvasElement.watch.running).toBe(false);
 
     // disable reduced motion
-    mediaQueryMatches = false;
-    notifyMediaQueryChangeListeners();
+    setMediaQuery(false);
     expect(shaderCanvasElement.watch.running).toBe(true);
   });
 
@@ -118,7 +117,7 @@ describe('shader-canvas tests without any configuration', () => {
 
 describe('shader-canvas tests with buffers, vertex and fragment shader', () => {
   beforeEach(() => {
-    LISTENERS = [];
+    resetMediaQueryListeners();
     const element = document.createElement('shader-canvas');
     element.setAttribute('dpr', '1');
     element.innerHTML = `
