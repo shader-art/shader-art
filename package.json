@@ -1,12 +1,12 @@
 {
-  "name": "shader-canvas",
+  "name": "shader-art",
   "version": "0.0.1",
   "description": "A web component running WebGL shaders",
   "engines": {
     "node": ">=12"
   },
   "scripts": {
-    "build:types": "tsc -t esnext --moduleResolution node -d --emitDeclarationOnly --outFile dist/shader-canvas.d.ts src/shader-canvas.ts",
+    "build:types": "./scripts/minify.sh",
     "build:js": "rollup -c rollup.config.js",
     "build:min": "./scripts/minify.sh",
     "build": "npm run build:js -s && npm run build:min -s && npm run build:types -s",
@@ -23,10 +23,22 @@
     "creative-coding"
   ],
   "files": [
-    "dist"
+    "dist",
+    "dist/plugins"
   ],
-  "author": "",
-  "license": "ISC",
+  "module": "./dist/shader-canvas.esm.min.js",
+  "exports": {
+    ".": {
+      "import": "./dist/shader-canvas.esm.min.js",
+      "require": "./dist/shader-canvas.umd.min.js"
+    },
+    "./plugins/texture": {
+      "import": "./dist/plugins/texture-plugin.esm.min.js",
+      "require": "./dist/plugins/texture-plugin.umd.min.js"
+    }
+  },
+  "author": "Lea Rosema",
+  "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-typescript": "^8.1.0",
     "@types/jest": "^26.0.20",
