@@ -245,8 +245,8 @@ export class TexturePlugin implements ShaderArtPlugin {
         image
       );
       // Set a uniform variable containing the texture index
-      const uniformLoc = gl.getUniformLocation(program, 'myTexture');
-      gl.uniform1i(item.name, item.idx);
+      const uniformLoc = gl.getUniformLocation(program, item.name);
+      gl.uniform1i(uniformLoc, item.idx);
       this.textureState[item.name] = {
         ...item,
         image,
