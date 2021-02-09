@@ -34,7 +34,7 @@ export class TexturePlugin implements ShaderArtPlugin {
     gl: WebGLRenderingContext | WebGL2RenderingContext,
     program: WebGLProgram,
     canvas: HTMLCanvasElement
-  ): void {
+  ): Promise<void> {
     this.hostElement = hostElement;
     this.gl = gl;
     this.program = program;
@@ -75,7 +75,7 @@ export class TexturePlugin implements ShaderArtPlugin {
     const enter = [...this.hostElement.querySelectorAll('img')].map((element) =>
       this.getTextureMetaData(element as HTMLElement)
     );
-    this.loadImagesAndUpload(enter, []);
+    return this.loadImagesAndUpload(enter, []);
   }
 
   whenImagesLoaded(): Promise<void> {

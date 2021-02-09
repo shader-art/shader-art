@@ -239,12 +239,12 @@ export class ShaderArt extends HTMLElement {
   }
 
   render() {
-    const { gl, program, watch } = this;
-    if (!gl || !program) {
-      throw Error('render failed: gl context not initialized.');
+    const { gl, program, watch, initialized } = this;
+    if (!gl || !program || !initialized) {
+      return;
     }
     const uTime = gl.getUniformLocation(program, 'time');
-    const time = watch.elapsedTime;
+    const time = watch.elapsedTime * 1e-3;
     gl.uniform1f(uTime, time);
     gl.drawArrays(gl.TRIANGLES, 0, this.count);
   }
@@ -307,7 +307,16 @@ export class ShaderArt extends HTMLElement {
     this.createBuffers();
     this.onResize();
     this.prefersReducedMotion = prefersReducedMotion();
-    this.activatePlugins();
+
+    const promises = this.activatePlugins();
+    // if one or more of the plugins return a promise,
+    // wait for render until all promises resolve
+    this.initialized = promises instanceof Promise === false;
+    if (promises instanceof Promise) {
+      promises.then(() => {
+        this.initialized = true;
+      });
+    }
     this.render();
     this.addEventListeners();
     if (this.autoPlay) {
@@ -331,15 +340,22 @@ export class ShaderArt extends HTMLElement {
     }
   }
 
-  private activatePlugins(): void {
+  private activatePlugins(): Promise<void[]> | void {
+    const queue: Promise<void>[] = [];
     for (const pluginFactory of ShaderArt.plugins) {
       if (this.canvas && this.gl && this.program) {
         const plugin = pluginFactory();
         if (!this.activePlugins.find((item) => item.name === plugin.name)) {
           this.activePlugins.push(plugin);
-          plugin.setup(this, this.gl, this.program, this.canvas);
+          const retVal = plugin.setup(this, this.gl, this.program, this.canvas);
+          if (retVal instanceof Promise) {
+            queue.push(retVal);
+          }
         }
       }
+    }
+    if (queue.length > 0) {
+      return Promise.all(queue);
     }
   }
 

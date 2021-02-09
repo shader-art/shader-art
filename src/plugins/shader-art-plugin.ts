@@ -7,6 +7,6 @@ export interface ShaderArtPlugin {
     gl: WebGLRenderingContext | WebGL2RenderingContext,
     program: WebGLProgram,
     canvas: HTMLCanvasElement
-  ): void;
+  ): void | Promise<void>;
   dispose(): void;
 }
