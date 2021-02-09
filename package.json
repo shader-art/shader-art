@@ -10,7 +10,7 @@
     "build:js": "rollup -c rollup.config.js",
     "build:min": "./scripts/minify.sh",
     "build": "npm run build:js -s && npm run build:min -s && npm run build:types -s",
-    "copyjs:demos": "cp dist/shader-canvas.umd.min.js public",
+    "copyjs:demos": "cp dist/shader-art.umd.min.js public",
     "build:demos": "pug src/examples/*.pug -O pug.config.js -o public",
     "watch:demos": "pug src/examples/*.pug -O pug.config.js -o public -w",
     "serve:demos": "node scripts/serve-demos",
@@ -26,11 +26,11 @@
     "dist",
     "dist/plugins"
   ],
-  "module": "./dist/shader-canvas.esm.min.js",
+  "module": "./dist/shader-art.esm.min.js",
   "exports": {
     ".": {
-      "import": "./dist/shader-canvas.esm.min.js",
-      "require": "./dist/shader-canvas.umd.min.js"
+      "import": "./dist/shader-art.esm.min.js",
+      "require": "./dist/shader-art.umd.min.js"
     },
     "./plugins/texture": {
       "import": "./dist/plugins/texture-plugin.esm.min.js",

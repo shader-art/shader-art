@@ -1,17 +1,17 @@
-# `<shader-canvas>` component
+# `<shader-art>` component
 
-The `<shader-canvas>` component is a web component that creates a WebGL canvas, running a shader animation.
+The `<shader-art>` component is a web component that creates a WebGL canvas, running a shader animation.
 
 ## Buffer definitions
 
-By default, shader-canvas provides a `position` buffer, containing 2 triangles filling up the whole clipping space from (-1, -1) to (1, 1).
+By default, shader-art provides a `position` buffer, containing 2 triangles filling up the whole clipping space from (-1, -1) to (1, 1).
 
 The `position` buffer can be accessed via the `attribute vec4 position` attribute in the vertex shader.
 
 ## Adding shaders
 
 ```html
-<shader-canvas>
+<shader-art>
   <script type="vert">
     attribute vec4 position;
     void main() {
@@ -23,7 +23,7 @@ The `position` buffer can be accessed via the `attribute vec4 position` attribut
       gl_FragColor = vec4(1., 0., 0., 1.);
     }
   </script>
-</shader-canvas>
+</shader-art>
 ```
 
 ## Adding textures
@@ -31,7 +31,7 @@ The `position` buffer can be accessed via the `attribute vec4 position` attribut
 (work in progress here)
 
 ```html
-<shader-canvas>
+<shader-art>
   <texture
     src="https://placekitten.com/128/128"
     name="kitten"
@@ -41,7 +41,7 @@ The `position` buffer can be accessed via the `attribute vec4 position` attribut
   <script type="frag">
     uniform sampler2D kitten;
   </script>
-</shader-canvas>
+</shader-art>
 ```
 
 ## Provided uniforms

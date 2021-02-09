@@ -2,16 +2,16 @@ import typescript from '@rollup/plugin-typescript';
 
 export default [
   {
-    input: 'src/shader-canvas.ts',
+    input: 'src/shader-art.ts',
     output: [
       {
-        file: 'dist/shader-canvas.esm.js',
+        file: 'dist/shader-art.esm.js',
         format: 'es',
       },
       {
-        file: 'dist/shader-canvas.umd.js',
+        file: 'dist/shader-art.umd.js',
         format: 'umd',
-        name: 'ShaderCanvasLib',
+        name: 'ShaderArtLib',
       },
     ],
     plugins: [typescript()],

@@ -1,6 +1,6 @@
-import { ShaderCanvasPlugin } from './shader-canvas-plugin';
+import { ShaderArtPlugin } from './shader-art-plugin';
 import { TexturePlugin, TexturePluginFactory } from './texture-plugin';
-import { ShaderCanvas } from '../shader-canvas';
+import { ShaderArt } from '../shader-art';
 import '../test-utils/browser-shims';
 
 const html = (x: any) => x;
@@ -49,12 +49,12 @@ const fragmentShader = html`
   </script>
 `;
 
-const createShaderCanvas = (html: string): ShaderCanvas => {
-  const element = document.createElement('shader-canvas');
+const createShaderArt = (html: string): ShaderArt => {
+  const element = document.createElement('shader-art');
   element.setAttribute('autoplay', '');
   element.innerHTML = html;
   document.body.appendChild(element);
-  return element as ShaderCanvas;
+  return element as ShaderArt;
 };
 
 class ImageMockOnLoad extends Image {
@@ -80,15 +80,15 @@ describe('TexturePlugin tests', () => {
 
   beforeAll(() => {
     global.Image = ImageMockOnLoad;
-    ShaderCanvas.register([TexturePluginFactory]);
+    ShaderArt.register([TexturePluginFactory]);
   });
 
   afterAll(() => {
     global.Image = originalImage;
   });
 
-  test('shader-canvas has loaded the TexturePlugin', () => {
-    expect(ShaderCanvas.plugins).toContain(TexturePluginFactory);
+  test('shader-art has loaded the TexturePlugin', () => {
+    expect(ShaderArt.plugins).toContain(TexturePluginFactory);
   });
 
   test('test if the test environment supports loading images', async () => {
@@ -121,19 +121,19 @@ describe('TexturePlugin tests', () => {
     expect(mutated).toBe(true);
   });
 
-  test('shader-canvas creation', () => {
-    const element = createShaderCanvas(
+  test('shader-art creation', () => {
+    const element = createShaderArt(
       testTexture() + vertexShader + fragmentShader
     );
     expect(element).toBeDefined();
     expect(element.canvas).toBeInstanceOf(HTMLCanvasElement);
-    expect(
-      element.activePlugins.map((p: ShaderCanvasPlugin) => p.name)
-    ).toContain('TexturePlugin');
+    expect(element.activePlugins.map((p: ShaderArtPlugin) => p.name)).toContain(
+      'TexturePlugin'
+    );
   });
 
-  test('shader-canvas defines a texture', async () => {
-    const element = createShaderCanvas(
+  test('shader-art defines a texture', async () => {
+    const element = createShaderArt(
       testTexture() + vertexShader + fragmentShader
     );
     const texturePlugin = element.activePlugins.find(
@@ -146,8 +146,8 @@ describe('TexturePlugin tests', () => {
     expect(Object.keys(textureState)).toContain('texture');
   });
 
-  test('shader-canvas defines a texture, and then updates it when the src attrib is changed', async () => {
-    const element = createShaderCanvas(
+  test('shader-art defines a texture, and then updates it when the src attrib is changed', async () => {
+    const element = createShaderArt(
       testTexture() + vertexShader + fragmentShader
     );
     const texturePlugin = element.activePlugins.find(
@@ -178,8 +178,8 @@ describe('TexturePlugin tests', () => {
     expect(newTextureState.texture.src).toBe('https://picsum.photos/135/124');
   });
 
-  test('shader-canvas defines a texture and then loads another one when the dom is modified afterwards', async () => {
-    const element = createShaderCanvas(vertexShader + fragmentShader);
+  test('shader-art defines a texture and then loads another one when the dom is modified afterwards', async () => {
+    const element = createShaderArt(vertexShader + fragmentShader);
     const texturePlugin = element.activePlugins.find(
       (p) => p.name === 'TexturePlugin'
     );
@@ -202,7 +202,7 @@ describe('TexturePlugin tests', () => {
   });
 
   afterEach(() => {
-    const sc = document.querySelector('shader-canvas');
+    const sc = document.querySelector('shader-art');
     if (sc) {
       sc.remove();
     }

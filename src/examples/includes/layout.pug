@@ -10,17 +10,17 @@ html(lang="en")
   body
     block header
       header.header
-        h1 `shader-canvas` examples
+        h1 `shader-art` examples
     nav.navigation
       block navigation
         include:markdown-it nav.md
     main
       block main
-        shader-canvas.background(dpr="auto", aria-hidden="true", autoplay="autoplay")
+        shader-art.background(dpr="auto", aria-hidden="true", autoplay="autoplay")
           script(type="vert")
             include:glslminify ../shaders/example-01.vs
           script(type="frag")
             include:glslminify ../shaders/example-01.fs
 
     block scripts
-      script(src="shader-canvas.umd.min.js")
+      script(src="shader-art.umd.min.js")

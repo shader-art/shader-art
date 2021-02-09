@@ -1,18 +1,18 @@
 import { prefersReducedMotion } from './mediaquery';
 import {
-  ShaderCanvasPlugin,
-  ShaderCanvasPluginFactory,
-} from './plugins/shader-canvas-plugin';
+  ShaderArtPlugin,
+  ShaderArtPluginFactory,
+} from './plugins/shader-art-plugin';
 import { Stopwatch } from './stopwatch';
 
-export type ShaderCanvasBuffer = {
+export type ShaderArtBuffer = {
   buffer: WebGLBuffer;
   recordSize: number;
   attribLoc: number;
   data: Float32Array;
 };
 
-export type ShaderCanvasTexture = {
+export type ShaderArtTexture = {
   src: string;
   idx: number;
   name: string;
@@ -24,8 +24,8 @@ const DEFAULT_VERT =
   HEADER + 'attribute vec4 position;void main(){gl_Position=position;}';
 const DEFAULT_FRAG = HEADER + 'void main(){gl_FragColor=vec4(1.,0,0,1.);}';
 
-export class ShaderCanvas extends HTMLElement {
-  buffers: Record<string, ShaderCanvasBuffer> = {};
+export class ShaderArt extends HTMLElement {
+  buffers: Record<string, ShaderArtBuffer> = {};
   prefersReducedMotion: MediaQueryList;
   canvas: HTMLCanvasElement | null = null;
   initialized = false;
@@ -38,7 +38,7 @@ export class ShaderCanvas extends HTMLElement {
   fragShader: WebGLShader | null = null;
   vertShader: WebGLShader | null = null;
   watch: Stopwatch;
-  activePlugins: ShaderCanvasPlugin[] = [];
+  activePlugins: ShaderArtPlugin[] = [];
 
   constructor() {
     super();
@@ -51,12 +51,12 @@ export class ShaderCanvas extends HTMLElement {
     this.watch = new Stopwatch();
   }
 
-  static plugins: ShaderCanvasPluginFactory[] = [];
+  static plugins: ShaderArtPluginFactory[] = [];
 
-  static register(plugins: ShaderCanvasPluginFactory[] = []) {
-    ShaderCanvas.plugins = plugins;
-    if (typeof customElements.get('shader-canvas') === 'undefined') {
-      customElements.define('shader-canvas', ShaderCanvas);
+  static register(plugins: ShaderArtPluginFactory[] = []) {
+    ShaderArt.plugins = plugins;
+    if (typeof customElements.get('shader-art') === 'undefined') {
+      customElements.define('shader-art', ShaderArt);
     }
   }
 
@@ -332,7 +332,7 @@ export class ShaderCanvas extends HTMLElement {
   }
 
   private activatePlugins(): void {
-    for (const pluginFactory of ShaderCanvas.plugins) {
+    for (const pluginFactory of ShaderArt.plugins) {
       if (this.canvas && this.gl && this.program) {
         const plugin = pluginFactory();
         if (!this.activePlugins.find((item) => item.name === plugin.name)) {

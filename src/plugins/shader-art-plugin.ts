@@ -1,6 +1,6 @@
-export type ShaderCanvasPluginFactory = () => ShaderCanvasPlugin;
+export type ShaderArtPluginFactory = () => ShaderArtPlugin;
 
-export interface ShaderCanvasPlugin {
+export interface ShaderArtPlugin {
   name: string;
   setup(
     hostElement: HTMLElement,

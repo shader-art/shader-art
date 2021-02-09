@@ -1,26 +1,26 @@
 import { loadImage } from '../utils/image-loader';
-import { ShaderCanvasPlugin } from './shader-canvas-plugin';
+import { ShaderArtPlugin } from './shader-art-plugin';
 
-export interface ShaderCanvasTexture {
+export interface ShaderArtTexture {
   src: string;
   idx: number;
   name: string;
   options?: Record<string, string>;
 }
 
-export interface ShaderCanvasTextureState extends ShaderCanvasTexture {
+export interface ShaderArtTextureState extends ShaderArtTexture {
   image: HTMLImageElement;
   uniformLoc: WebGLUniformLocation | null;
   texture: WebGLTexture | null;
 }
-export class TexturePlugin implements ShaderCanvasPlugin {
+export class TexturePlugin implements ShaderArtPlugin {
   name = 'TexturePlugin';
   initialized = false;
   imagesLoaded = false;
   indexCounter = 0;
   observer: MutationObserver | null = null;
 
-  textureState: Record<string, ShaderCanvasTextureState> = {};
+  textureState: Record<string, ShaderArtTextureState> = {};
 
   hostElement: HTMLElement | null = null;
   gl: WebGLRenderingContext | WebGL2RenderingContext | null = null;
@@ -43,8 +43,8 @@ export class TexturePlugin implements ShaderCanvasPlugin {
     // The texture plugin looks for <IMG> elements
     this.observer = new MutationObserver((mutations) => {
       this.imagesLoaded = false;
-      const enter: ShaderCanvasTexture[] = [];
-      const update: ShaderCanvasTexture[] = [];
+      const enter: ShaderArtTexture[] = [];
+      const update: ShaderArtTexture[] = [];
       for (const mutation of mutations) {
         if (mutation.target instanceof HTMLElement) {
           if (mutation.type === 'attributes') {
@@ -123,7 +123,7 @@ export class TexturePlugin implements ShaderCanvasPlugin {
     this.program = null;
   }
 
-  private getTextureMetaData(element: HTMLElement): ShaderCanvasTexture {
+  private getTextureMetaData(element: HTMLElement): ShaderArtTexture {
     const attribs: Record<string, string>[] = [...element.attributes]
       .filter((attr) => ['src', 'name'].indexOf(attr.name) === -1)
       .map((attr) => ({
@@ -144,7 +144,7 @@ export class TexturePlugin implements ShaderCanvasPlugin {
   }
 
   private loadTextures(
-    textures: ShaderCanvasTexture[]
+    textures: ShaderArtTexture[]
   ): Promise<Record<string, HTMLImageElement>> {
     return new Promise<Record<string, HTMLImageElement>>((resolve, reject) => {
       const queue = [];
@@ -190,8 +190,8 @@ export class TexturePlugin implements ShaderCanvasPlugin {
    * @param update
    */
   private loadImagesAndUpload(
-    enter: ShaderCanvasTexture[],
-    update: ShaderCanvasTexture[]
+    enter: ShaderArtTexture[],
+    update: ShaderArtTexture[]
   ): Promise<void> {
     this.imagesLoaded = false;
     return new Promise<void>((resolve, reject) => {
@@ -222,8 +222,8 @@ export class TexturePlugin implements ShaderCanvasPlugin {
    */
   private uploadTextures(
     textureImages: Record<string, HTMLImageElement>,
-    enter: ShaderCanvasTexture[],
-    update: ShaderCanvasTexture[]
+    enter: ShaderArtTexture[],
+    update: ShaderArtTexture[]
   ) {
     this.imagesLoaded = false;
     const { gl, program } = this;
