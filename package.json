@@ -5,7 +5,7 @@
   "engines": {
     "node": ">=12"
   },
-  "repository": "terabaud/shader-art/",
+  "repository": "shader-art/shader-art/",
   "author": "Lea Rosema",
   "license": "MIT",
   "types": "./dist/shader-art.d.ts",
