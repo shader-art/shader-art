@@ -1,4 +1,4 @@
-import { ShaderArtPlugin } from './plugins/shader-art-plugin';
+import { ShaderArtPlugin } from '@shader-art/plugin-base';
 import './shader-art';
 import { ShaderArt } from './shader-art';
 import './test-utils/browser-shims';

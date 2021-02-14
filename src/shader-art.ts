@@ -1,8 +1,5 @@
 import { prefersReducedMotion } from './mediaquery';
-import {
-  ShaderArtPlugin,
-  ShaderArtPluginFactory,
-} from './plugins/shader-art-plugin';
+import { ShaderArtPlugin } from '@shader-art/plugin-base';
 import { Stopwatch } from './stopwatch';
 
 export type ShaderArtBuffer = {
@@ -51,9 +48,9 @@ export class ShaderArt extends HTMLElement {
     this.watch = new Stopwatch();
   }
 
-  static plugins: ShaderArtPluginFactory[] = [];
+  static plugins: (() => ShaderArtPlugin)[] = [];
 
-  static register(plugins: ShaderArtPluginFactory[] = []) {
+  static register(plugins: (() => ShaderArtPlugin)[] = []) {
     ShaderArt.plugins = plugins;
     if (typeof customElements.get('shader-art') === 'undefined') {
       customElements.define('shader-art', ShaderArt);
