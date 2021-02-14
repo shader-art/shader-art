@@ -27,7 +27,11 @@ export class TexturePlugin implements ShaderArtPlugin {
   program: WebGLProgram | null = null;
   canvas: HTMLCanvasElement | null = null;
 
-  constructor() {}
+  constructor() {
+    console.warn(
+      'Deprecation warning: with the next breaking change, this plugin will be removed. npm install @shader-art/plugin-texture'
+    );
+  }
 
   public setup(
     hostElement: HTMLElement,
