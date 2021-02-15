@@ -35,7 +35,6 @@ export class ShaderArt extends HTMLElement {
     super();
     this.prefersReducedMotion = prefersReducedMotion();
     this.onResize = this.onResize.bind(this);
-    this.onMouseMove = this.onMouseMove.bind(this);
     this.renderLoop = this.renderLoop.bind(this);
     this.onChangeReducedMotion = this.onChangeReducedMotion.bind(this);
     this.frame = -1;
@@ -142,22 +141,6 @@ export class ShaderArt extends HTMLElement {
       ]);
       this.render();
     }
-  }
-
-  setMouse(x: number, y: number): void {
-    const { gl, program } = this;
-    if (gl && program) {
-      const uMouse = gl.getUniformLocation(program, 'mouse');
-      gl.uniform2fv(uMouse, [x, y]);
-    }
-  }
-
-  onMouseMove(e: MouseEvent): void {
-    const aspectRatio = this.clientWidth / this.clientHeight;
-    this.setMouse(
-      (e.clientX / this.clientWidth - 0.5) * aspectRatio,
-      0.5 - e.clientY / this.clientHeight
-    );
   }
 
   onChangeReducedMotion(): void {
@@ -316,7 +299,6 @@ export class ShaderArt extends HTMLElement {
 
   private addEventListeners(): void {
     window.addEventListener('resize', this.onResize, false);
-    window.addEventListener('mousemove', this.onMouseMove, false);
     this.prefersReducedMotion?.addEventListener(
       'change',
       this.onChangeReducedMotion,
@@ -386,7 +368,6 @@ export class ShaderArt extends HTMLElement {
     this.watch.reset();
     this.deactivatePlugins();
     window.removeEventListener('resize', this.onResize, false);
-    window.removeEventListener('mousemove', this.onMouseMove, false);
     this.deleteProgramAndBuffers();
     if (this.gl) {
       const loseCtx = this.gl.getExtension('WEBGL_lose_context');
