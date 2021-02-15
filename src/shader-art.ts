@@ -1,5 +1,6 @@
-import { prefersReducedMotion } from './mediaquery';
 import { ShaderArtPlugin } from '@shader-art/plugin-base';
+
+import { prefersReducedMotion } from './mediaquery';
 import { Stopwatch } from './stopwatch';
 
 export type ShaderArtBuffer = {
