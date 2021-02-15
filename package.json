@@ -19,7 +19,7 @@
     "build:cjs": "esbuild --format=cjs --bundle --minify src/index.ts > dist/index.cjs",
     "lint": "npm run lint:js -s && npm run lint:package -s",
     "lint:js": "eslint src",
-    "lint:package": "npx @skypack/package-check && node scripts/package-check-exists.cjs",
+    "lint:package": "npx @skypack/package-check",
     "test": "npm run lint -s && jest -c jest.config.cjs"
   },
   "keywords": [
