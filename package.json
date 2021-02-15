@@ -40,7 +40,10 @@
   "devDependencies": {
     "@skypack/package-check": "^0.2.2",
     "@types/jest": "^26.0.20",
+    "@typescript-eslint/eslint-plugin": "^4.15.0",
+    "@typescript-eslint/parser": "^4.15.0",
     "esbuild": "^0.8.46",
+    "eslint": "^7.20.0",
     "husky": "^4.3.8",
     "jest": "^26.6.3",
     "jest-webgl-canvas-mock": "^0.2.3",
@@ -56,9 +59,6 @@
     }
   },
   "dependencies": {
-    "@shader-art/plugin-base": "^0.1.1",
-    "@typescript-eslint/eslint-plugin": "^4.15.0",
-    "@typescript-eslint/parser": "^4.15.0",
-    "eslint": "^7.20.0"
+    "@shader-art/plugin-base": "^0.1.1"
   }
 }
