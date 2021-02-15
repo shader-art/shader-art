@@ -1,4 +1,4 @@
-let LISTENERS: any[] = [];
+let LISTENERS: (() => void)[] = [];
 let mediaQueryMatches = false;
 
 // simulate dispatching a change event for window.matchMedia
@@ -10,19 +10,16 @@ const notifyMediaQueryChangeListeners = () => {
   });
 };
 
-//@ts-ignore window.devicePixelRatio shim
-window.devicePixelRatio = 2;
-
 // matchMedia shim (safari style)
 window.matchMedia = () =>
   (<unknown>{
     get matches() {
       return mediaQueryMatches;
     },
-    addListener(fn: any) {
+    addListener(fn: () => void) {
       LISTENERS.push(fn);
     },
-    removeListener(fn: any) {
+    removeListener(fn: () => void) {
       const idx = LISTENERS.indexOf(fn);
       if (idx >= 0) {
         LISTENERS.splice(idx, 1);
@@ -30,11 +27,11 @@ window.matchMedia = () =>
     },
   }) as MediaQueryList;
 
-export const setMediaQuery = (value: boolean) => {
+export const setMediaQuery = (value: boolean): void => {
   mediaQueryMatches = value;
   notifyMediaQueryChangeListeners();
 };
 
-export const resetMediaQueryListeners = () => {
+export const resetMediaQueryListeners = (): void => {
   LISTENERS = [];
 };

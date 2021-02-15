@@ -9,13 +9,6 @@ export type ShaderArtBuffer = {
   data: Float32Array;
 };
 
-export type ShaderArtTexture = {
-  src: string;
-  idx: number;
-  name: string;
-  options?: Record<string, any>;
-};
-
 const HEADER = 'precision highp float;';
 const DEFAULT_VERT =
   HEADER + 'attribute vec4 position;void main(){gl_Position=position;}';
@@ -28,10 +21,10 @@ export class ShaderArt extends HTMLElement {
   initialized = false;
   gl: WebGLRenderingContext | WebGL2RenderingContext | null = null;
   program: WebGLProgram | null = null;
-  frame: number = -1;
-  count: number = 0;
-  fragCode: string = '';
-  vertCode: string = '';
+  frame = -1;
+  count = 0;
+  fragCode = '';
+  vertCode = '';
   fragShader: WebGLShader | null = null;
   vertShader: WebGLShader | null = null;
   watch: Stopwatch;
@@ -50,28 +43,28 @@ export class ShaderArt extends HTMLElement {
 
   static plugins: (() => ShaderArtPlugin)[] = [];
 
-  static register(plugins: (() => ShaderArtPlugin)[] = []) {
+  static register(plugins: (() => ShaderArtPlugin)[] = []): void {
     ShaderArt.plugins = plugins;
     if (typeof customElements.get('shader-art') === 'undefined') {
       customElements.define('shader-art', ShaderArt);
     }
   }
 
-  static get observedAttributes() {
+  static get observedAttributes(): string[] {
     return ['play-state', 'autoplay'];
   }
 
-  connectedCallback() {
+  connectedCallback(): void {
     if (!this.gl) {
       this.setup();
     }
   }
 
-  disconnectedCallback() {
+  disconnectedCallback(): void {
     this.dispose();
   }
 
-  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+  attributeChangedCallback(name: string): void {
     if (name === 'play-state' && this.gl) {
       this._updatePlaystate();
     }
@@ -80,7 +73,7 @@ export class ShaderArt extends HTMLElement {
     }
   }
 
-  get devicePixelRatio() {
+  get devicePixelRatio(): number {
     return (
       parseFloat(this.getAttribute('dpr') || '') || window.devicePixelRatio
     );
@@ -108,7 +101,7 @@ export class ShaderArt extends HTMLElement {
     return this.hasAttribute('autoplay');
   }
 
-  private _updatePlaystate() {
+  private _updatePlaystate(): void {
     const { prefersReducedMotion } = this;
     if (
       (this.playState === 'stopped' || prefersReducedMotion.matches) &&
@@ -132,7 +125,7 @@ export class ShaderArt extends HTMLElement {
   /**
    * Called when the window is resized.
    */
-  onResize() {
+  onResize(): void {
     const { canvas, gl, program } = this;
     const width = this.clientWidth;
     const height = this.clientHeight;
@@ -150,7 +143,7 @@ export class ShaderArt extends HTMLElement {
     }
   }
 
-  setMouse(x: number, y: number) {
+  setMouse(x: number, y: number): void {
     const { gl, program } = this;
     if (gl && program) {
       const uMouse = gl.getUniformLocation(program, 'mouse');
@@ -158,7 +151,7 @@ export class ShaderArt extends HTMLElement {
     }
   }
 
-  onMouseMove(e: MouseEvent) {
+  onMouseMove(e: MouseEvent): void {
     const aspectRatio = this.clientWidth / this.clientHeight;
     this.setMouse(
       (e.clientX / this.clientWidth - 0.5) * aspectRatio,
@@ -166,7 +159,7 @@ export class ShaderArt extends HTMLElement {
     );
   }
 
-  onChangeReducedMotion() {
+  onChangeReducedMotion(): void {
     this._updatePlaystate();
   }
 
@@ -209,7 +202,7 @@ export class ShaderArt extends HTMLElement {
     gl.vertexAttribPointer(attribLoc, recordSize, gl.FLOAT, false, 0, 0);
   }
 
-  private createBuffers() {
+  private createBuffers(): void {
     const bufferScripts = [...this.querySelectorAll('[type=buffer]')];
     this.buffers = {};
     let count = -1;
@@ -235,7 +228,7 @@ export class ShaderArt extends HTMLElement {
     this.count = count;
   }
 
-  render() {
+  render(): void {
     const { gl, program, watch, initialized } = this;
     if (!gl || !program || !initialized) {
       return;
@@ -246,12 +239,12 @@ export class ShaderArt extends HTMLElement {
     gl.drawArrays(gl.TRIANGLES, 0, this.count);
   }
 
-  private renderLoop() {
+  private renderLoop(): void {
     this.render();
     this.frame = requestAnimationFrame(this.renderLoop);
   }
 
-  private createPrograms() {
+  private createPrograms(): void {
     const { gl } = this;
     if (!gl) {
       throw Error('render failed: gl context not initialized.');
@@ -283,7 +276,7 @@ export class ShaderArt extends HTMLElement {
     gl.useProgram(program);
   }
 
-  private setup() {
+  private setup(): void {
     if (this.gl && !this.gl.isContextLost()) {
       return;
     }
@@ -293,10 +286,9 @@ export class ShaderArt extends HTMLElement {
     canvas.style.display = 'block';
     this.canvas = canvas;
     this.appendChild(this.canvas);
-    //@ts-ignore
     this.gl =
       this.canvas.getContext('webgl') ||
-      this.canvas.getContext('experimental-webgl');
+      (this.canvas.getContext('experimental-webgl') as WebGLRenderingContext);
     if (!this.gl) {
       throw new Error('WebGL not supported');
     }
@@ -356,7 +348,7 @@ export class ShaderArt extends HTMLElement {
     }
   }
 
-  reinitialize() {
+  reinitialize(): void {
     this.deactivatePlugins();
     this.deleteProgramAndBuffers();
     this.createPrograms();
@@ -365,11 +357,11 @@ export class ShaderArt extends HTMLElement {
     this.onResize();
   }
 
-  private deleteProgramAndBuffers() {
+  private deleteProgramAndBuffers(): void {
     if (!this.gl) {
       throw Error('no gl context initialized');
     }
-    Object.entries(this.buffers).forEach(([_name, buf]) => {
+    Object.entries(this.buffers).forEach(([_, buf]) => {
       if (this.gl) {
         this.gl.deleteBuffer(buf.buffer);
       }
@@ -377,7 +369,7 @@ export class ShaderArt extends HTMLElement {
     this.gl.deleteProgram(this.program);
   }
 
-  private dispose() {
+  private dispose(): void {
     if (this.frame > -1) {
       cancelAnimationFrame(this.frame);
     }
