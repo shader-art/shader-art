@@ -213,12 +213,17 @@ export class ShaderArt extends HTMLElement {
   }
 
   render(): void {
-    const { gl, program, watch, initialized } = this;
-    if (!gl || !program || !initialized) {
+    const { gl, program, watch, initialized, canvas } = this;
+    if (!gl || !program || !initialized || !canvas) {
       return;
     }
     const uTime = gl.getUniformLocation(program, 'time');
     const time = watch.elapsedTime * 1e-3;
+    for (const plugin of this.activePlugins) {
+      if (plugin.onFrame) {
+        plugin.onFrame(this, gl, program, canvas);
+      }
+    }
     gl.uniform1f(uTime, time);
     gl.drawArrays(gl.TRIANGLES, 0, this.count);
   }
@@ -235,10 +240,17 @@ export class ShaderArt extends HTMLElement {
     }
     const fragScript = this.querySelector('[type=frag]');
     const vertScript = this.querySelector('[type=vert]');
-
-    this.fragCode = fragScript?.textContent || DEFAULT_FRAG;
-    this.vertCode = vertScript?.textContent || DEFAULT_VERT;
-
+    const shaders = {
+      fragmentShader: fragScript?.textContent || DEFAULT_FRAG,
+      vertexShader: vertScript?.textContent || DEFAULT_VERT,
+    };
+    for (const plugin of this.activePlugins) {
+      if (plugin.onBeforeCompileShader) {
+        plugin.onBeforeCompileShader(shaders);
+      }
+    }
+    this.fragCode = shaders.fragmentShader;
+    this.vertCode = shaders.vertexShader;
     const program = gl.createProgram();
     if (!program) {
       throw Error('createProgram failed.');
@@ -276,20 +288,16 @@ export class ShaderArt extends HTMLElement {
     if (!this.gl) {
       throw new Error('WebGL not supported');
     }
+    this.activatePlugins();
     this.createPrograms();
     this.createBuffers();
     this.onResize();
     this.prefersReducedMotion = prefersReducedMotion();
 
-    const promises = this.activatePlugins();
-    // if one or more of the plugins return a promise,
-    // wait for render until all promises resolve
-    this.initialized = promises instanceof Promise === false;
-    if (promises instanceof Promise) {
-      promises.then(() => {
-        this.initialized = true;
-      });
-    }
+    this.setupActivePlugins().then(() => {
+      this.initialized = true;
+    });
+
     this.render();
     this.addEventListeners();
     if (this.autoPlay) {
@@ -312,23 +320,42 @@ export class ShaderArt extends HTMLElement {
     }
   }
 
-  private activatePlugins(): Promise<void[]> | void {
-    const queue: Promise<void>[] = [];
+  private activatePlugins(): void {
     for (const pluginFactory of ShaderArt.plugins) {
       if (this.canvas && this.gl && this.program) {
         const plugin = pluginFactory();
         if (!this.activePlugins.find((item) => item.name === plugin.name)) {
           this.activePlugins.push(plugin);
-          const retVal = plugin.setup(this, this.gl, this.program, this.canvas);
-          if (retVal instanceof Promise) {
-            queue.push(retVal);
-          }
         }
       }
     }
-    if (queue.length > 0) {
-      return Promise.all(queue);
-    }
+  }
+
+  /**
+   * Calls the setup method on each plugin
+   * @returns a Promise
+   */
+  private setupActivePlugins(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.gl || !this.program || !this.canvas) {
+        reject(Error('WebGL not initialized'));
+        return;
+      }
+      const queue: Promise<void>[] = [];
+      for (const plugin of this.activePlugins) {
+        const retVal = plugin.setup(this, this.gl, this.program, this.canvas);
+        if (retVal instanceof Promise) {
+          queue.push(retVal);
+        }
+      }
+      Promise.all(queue)
+        .then(() => {
+          resolve();
+        })
+        .catch((error) => {
+          reject(error);
+        });
+    });
   }
 
   reinitialize(): void {
