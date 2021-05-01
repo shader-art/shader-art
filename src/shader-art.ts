@@ -322,11 +322,9 @@ export class ShaderArt extends HTMLElement {
 
   private activatePlugins(): void {
     for (const pluginFactory of ShaderArt.plugins) {
-      if (this.canvas && this.gl && this.program) {
-        const plugin = pluginFactory();
-        if (!this.activePlugins.find((item) => item.name === plugin.name)) {
-          this.activePlugins.push(plugin);
-        }
+      const plugin = pluginFactory();
+      if (!this.activePlugins.find((item) => item.name === plugin.name)) {
+        this.activePlugins.push(plugin);
       }
     }
   }
