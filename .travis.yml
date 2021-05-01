@@ -5,3 +5,4 @@ os: linux
 dist: xenial
 install:
   - npm i
+  - npm run lint
