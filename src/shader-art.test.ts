@@ -20,6 +20,11 @@ class DummyPlugin implements ShaderArtPlugin {
   }
 }
 
+const wait = (seconds: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(() => resolve(), seconds);
+  });
+
 describe('shader-art tests without any configuration', () => {
   beforeAll(() => ShaderArt.register([() => new DummyPlugin()]));
 
@@ -116,6 +121,8 @@ describe('shader-art tests without any configuration', () => {
 });
 
 describe('shader-art tests with buffers, vertex and fragment shader', () => {
+  beforeAll(() => ShaderArt.register([() => new DummyPlugin()]));
+
   beforeEach(() => {
     resetMediaQueryListeners();
     const element = document.createElement('shader-art');
@@ -155,5 +162,31 @@ describe('shader-art tests with buffers, vertex and fragment shader', () => {
     expect(shaderArtElement.buffers.luckynumber.recordSize).toBe(1);
     expect(shaderArtElement.buffers.luckynumber.data.length).toBe(3);
     expect(shaderArtElement.count).toBe(3);
+  });
+});
+
+describe('shader-art without autoplay attribute', () => {
+  beforeAll(() => ShaderArt.register([() => new DummyPlugin()]));
+  beforeEach(() => {
+    resetMediaQueryListeners();
+  });
+
+  test('it calls the render method', async () => {
+    const element: ShaderArt = document.createElement(
+      'shader-art'
+    ) as ShaderArt;
+    const resizeSpy = jest.spyOn(element, 'onResize');
+    const renderSpy = jest.spyOn(element, 'render');
+    document.body.appendChild(element);
+    expect(element.initialized).not.toBeTruthy();
+    expect(renderSpy).not.toHaveBeenCalled();
+    await wait(0);
+    expect(element.initialized).toBeTruthy();
+    expect(renderSpy).toHaveBeenCalled();
+    expect(resizeSpy).toHaveBeenCalled();
+    document.body.removeChild(element);
+    await wait(0);
+    resizeSpy.mockRestore();
+    renderSpy.mockRestore();
   });
 });

@@ -291,14 +291,13 @@ export class ShaderArt extends HTMLElement {
     this.activatePlugins();
     this.createPrograms();
     this.createBuffers();
-    this.onResize();
     this.prefersReducedMotion = prefersReducedMotion();
 
     this.setupActivePlugins().then(() => {
       this.initialized = true;
+      this.onResize();
     });
 
-    this.render();
     this.addEventListeners();
     if (this.autoPlay) {
       this.playState = 'running';
