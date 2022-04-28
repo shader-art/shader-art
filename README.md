@@ -8,7 +8,7 @@ The `<shader-art>` component is a web component that creates a WebGL canvas, run
 npm i shader-art
 ```
 
-### JS:
+### JavaScript
 
 ```js
 import { ShaderArt } from 'https://cdn.skypack.dev/shader-art';
@@ -16,7 +16,9 @@ import { ShaderArt } from 'https://cdn.skypack.dev/shader-art';
 ShaderArt.register();
 ```
 
-### CSS:
+### CSS
+
+You can style your shader-element according to your needs. Just provide a `display: block` (default would be display: inline) and specify a width and height according to your needs.
 
 ```css
 shader-art {
@@ -26,7 +28,9 @@ shader-art {
 }
 ```
 
-### HTML:
+### HTML
+
+The HTML structure of a shader-art component looks like this:
 
 ```html
 <shader-art autoplay>
@@ -51,6 +55,10 @@ shader-art {
   </script>
 </shader-art>
 ```
+
+## Using WebGL2
+
+Provide the `#version 300 es` pragma inside your fragment and vertex shader code.
 
 ## `<shader-art>` attributes
 

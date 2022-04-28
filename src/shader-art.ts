@@ -24,8 +24,6 @@ export class ShaderArt extends HTMLElement {
   program: WebGLProgram | null = null;
   frame = -1;
   count = 0;
-  fragCode = '';
-  vertCode = '';
   fragShader: WebGLShader | null = null;
   vertShader: WebGLShader | null = null;
   watch: Stopwatch;
@@ -73,9 +71,24 @@ export class ShaderArt extends HTMLElement {
     }
   }
 
+  get fragCode(): string {
+    const fragScript = this.querySelector('[type=frag]');
+    return fragScript?.textContent || DEFAULT_FRAG;
+  }
+
+  get vertCode(): string {
+    const vertScript = this.querySelector('[type=vert]');
+    return vertScript?.textContent || DEFAULT_VERT;
+  }
+
+  get webgl2(): boolean {
+    return this.fragCode.includes('#version 300 es');
+  }
+
   get devicePixelRatio(): number {
-    return (
-      parseFloat(this.getAttribute('dpr') || '') || window.devicePixelRatio
+    return Math.min(
+      parseFloat(this.getAttribute('dpr') || '1'),
+      window.devicePixelRatio
     );
   }
 
@@ -238,28 +251,25 @@ export class ShaderArt extends HTMLElement {
     if (!gl) {
       throw Error('render failed: gl context not initialized.');
     }
-    const fragScript = this.querySelector('[type=frag]');
-    const vertScript = this.querySelector('[type=vert]');
     const shaders = {
-      fragmentShader: fragScript?.textContent || DEFAULT_FRAG,
-      vertexShader: vertScript?.textContent || DEFAULT_VERT,
+      fragmentShader: this.fragCode,
+      vertexShader: this.vertCode,
     };
     for (const plugin of this.activePlugins) {
       if (plugin.onBeforeCompileShader) {
         plugin.onBeforeCompileShader(shaders);
       }
     }
-    this.fragCode = shaders.fragmentShader;
-    this.vertCode = shaders.vertexShader;
     const program = gl.createProgram();
     if (!program) {
       throw Error('createProgram failed.');
     }
     this.program = program;
-    this.gl = gl;
-
-    this.fragShader = this.createShader(gl.FRAGMENT_SHADER, this.fragCode);
-    this.vertShader = this.createShader(gl.VERTEX_SHADER, this.vertCode);
+    this.fragShader = this.createShader(
+      gl.FRAGMENT_SHADER,
+      shaders.fragmentShader
+    );
+    this.vertShader = this.createShader(gl.VERTEX_SHADER, shaders.vertexShader);
     if (!this.fragShader || !this.vertShader) {
       throw Error('createShader failed.');
     }
@@ -282,9 +292,14 @@ export class ShaderArt extends HTMLElement {
     canvas.style.display = 'block';
     this.canvas = canvas;
     this.appendChild(this.canvas);
-    this.gl =
-      this.canvas.getContext('webgl') ||
-      (this.canvas.getContext('experimental-webgl') as WebGLRenderingContext);
+    if (this.webgl2) {
+      this.gl = this.canvas.getContext('webgl2');
+    } else {
+      this.gl =
+        this.canvas.getContext('webgl') ||
+        (this.canvas.getContext('experimental-webgl') as WebGLRenderingContext);
+    }
+
     if (!this.gl) {
       throw new Error('WebGL not supported');
     }
