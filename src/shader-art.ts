@@ -73,12 +73,12 @@ export class ShaderArt extends HTMLElement {
 
   get fragCode(): string {
     const fragScript = this.querySelector('[type=frag]');
-    return fragScript?.textContent || DEFAULT_FRAG;
+    return (fragScript?.textContent || DEFAULT_FRAG).trim();
   }
 
   get vertCode(): string {
     const vertScript = this.querySelector('[type=vert]');
-    return vertScript?.textContent || DEFAULT_VERT;
+    return (vertScript?.textContent || DEFAULT_VERT).trim();
   }
 
   get webgl2(): boolean {
