@@ -72,12 +72,12 @@ export class ShaderArt extends HTMLElement {
   }
 
   get fragCode(): string {
-    const fragScript = this.querySelector('[type=frag]');
+    const fragScript = this.querySelector('[type="text/frag"], [type=frag]');
     return (fragScript?.textContent || DEFAULT_FRAG).trim();
   }
 
   get vertCode(): string {
-    const vertScript = this.querySelector('[type=vert]');
+    const vertScript = this.querySelector('[type="text/vert"], [type=vert]');
     return (vertScript?.textContent || DEFAULT_VERT).trim();
   }
 
@@ -200,11 +200,11 @@ export class ShaderArt extends HTMLElement {
   }
 
   private createBuffers(): void {
-    const bufferScripts = [...this.querySelectorAll('[type=buffer]')];
+    const bufferScripts = [...this.querySelectorAll('[type="text/buffer"], [type=buffer]')];
     this.buffers = {};
     let count = -1;
     bufferScripts.forEach((container) => {
-      const name = container.getAttribute('name') || 'position';
+      const name = container.getAttribute('id') || container.getAttribute('name') || 'position';
       const recordSize =
         parseInt(container.getAttribute('data-size') || '1', 10) || 1;
       const data = new Float32Array(
