@@ -1,0 +1,27 @@
+:where(:host) {
+	position: relative;
+	display: grid;
+	grid-template-areas: "stack";
+
+	> * {
+		display: none;
+	}
+
+	> canvas {
+		width: 100%;
+	}
+	
+	> .controls {
+		display: grid;
+		place-self: end start;
+		place-items: center;
+	
+		> button {
+			background: none;
+			font-family: inherit;
+			font-size: inherit;
+			line-height: 1;
+			color: currentColor;
+		}
+	}
+}
