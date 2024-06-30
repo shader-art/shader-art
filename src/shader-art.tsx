@@ -30,6 +30,10 @@ export class ShaderArt extends HTMLElement {
 	vertShader: WebGLShader | null = null;
 	watch: Stopwatch;
 	activePlugins: ShaderArtPlugin[] = [];
+	
+	controlsContainer: HTMLElement|null = null;
+	playButton: HTMLButtonElement|null = null;
+	pauseButton: HTMLButtonElement|null = null;
 
 	constructor() {
 		super();
@@ -72,15 +76,15 @@ export class ShaderArt extends HTMLElement {
 			this.playState = 'running';
 		}
 		if (name === 'controls') {
-
+			this._updateControls();
 		}
 	}
 
-	play() {
+	play = () => {
 		this.playState = 'running';
 	}
 
-	pause() {
+	pause = () => {
 		this.playState = 'stopped';
 	}
 
@@ -245,7 +249,7 @@ export class ShaderArt extends HTMLElement {
 		const { gl, program, watch, initialized, canvas } = this;
 		if (!gl || !program || !initialized || !canvas) {
 			return;
-		}
+				}
 		const uTime = gl.getUniformLocation(program, 'time');
 		const time = watch.elapsedTime * 1e-3;
 		for (const plugin of this.activePlugins) {
@@ -411,21 +415,29 @@ export class ShaderArt extends HTMLElement {
 	private createControls() {
 		const fragment = new DocumentFragment();
 		renderTree(fragment,
-			<div class="controls">
-				<button type="button" class="play" hidden>
-					<span aria-hidden="true">▶</span>
-					<span>Play</span>
-				</button>
-				<button type="button" class="pause" hidden>
-					<span aria-hidden="true">▶</span>
-					<span>Play</span>
-				</button>
-			</div>
+			<button type="button" class="play">
+				<span aria-hidden="true">▶</span>
+				<span>Play</span>
+			</button>
 		);
 		this.shadowRoot?.appendChild(fragment);
 		this.controls = this.shadowRoot.querySelector('.controls')
 		this.playButton = this.shadowRoot.querySelector('button.play');
-
+		this.stopButton = this.shadowRoot.querySelector('button.pause');
+		this.playButton!.addEventListener('click', this.play, false);
+		this.pauseButton!.addEventListener('click', this.pause, false);
+	}
+	
+	private removeControls() {
+		this.playButton?
+			.removeEventListener('click',this.play, false );
+		this.pauseButton?
+			.removeEventListener('click', this.pause, false);
+		this.controls?.remove();
+		
+		this.playButton = null;
+		this.pauseButton = null;
+		this.controls = null;
 	}
 
 	private dispose(): void {
