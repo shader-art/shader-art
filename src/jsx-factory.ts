@@ -1,5 +1,5 @@
 const svgNS = 'http://www.w3.org/2000/svg';
-
+const xhtmlNS = 'http://www.w3.org/1999/xhtml';
 export const fragment = 'fragment';
 
 export type DOMTree = {
@@ -15,7 +15,7 @@ export function h(tagName: string, attribs: Record<string, string>, ...children:
 }
 
 export function renderTree(node: Element|DocumentFragment, tree: DOMTree) {
-  const namespace = tree.tagName === 'svg' ? svgNS : node.namespaceURI;
+  const namespace = tree.tagName === 'svg' ? svgNS : (node instanceof Element ? node.namespaceURI : xhtmlNS);
   let el: Element|DocumentFragment;
   if (tree.tagName === fragment) {
     el = new DocumentFragment();

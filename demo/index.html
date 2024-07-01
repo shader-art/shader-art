@@ -11,6 +11,82 @@
 	</style>
 </head>
 <body>
-	
+	<h1>Shader Art Demo</h1>
+	<shader-art autoplay role="img" aria-label="An animated gradient that looks like a laser beam, using the trans pride colors. The beam does not run in a straight line, but in curves.">
+		<script type="buffer" name="position" data-size="2">
+		  [-1, 1, -1,-1, 1,1, 1, 1, -1,-1, 1,-1]
+		</script>
+		<script type="buffer" name="uv" data-size="2">
+		  [ 0, 0,  0, 1, 1,0, 1, 0,  0, 1, 1, 1]
+		</script>
+		<script type="vert">
+		  precision highp float;
+		  attribute vec4 position;
+		  attribute vec2 uv;
+		  varying vec2 vUv;
+		  varying vec4 vPos;
+		  void main() {
+			vUv = uv;
+			vPos = position;
+			gl_Position = position;
+		  }
+		</script>
+		<script type="frag">
+		  precision highp float;
+		  varying vec2 vUv;
+		  varying vec4 vPos;
+		  uniform vec2 resolution;
+		  uniform float time;
+		  #define SPEED 1.2
+		  #define CYAN vec3(0,1.,1.)
+		  #define RED vec3(1.,0,0)
+		  #define GREEN vec3(0,1.,0)
+		  #define BLUE vec3(0,0, 1.)
+		  
+		  float f(float x) {
+			return sin(x + time * SPEED) * .2;
+		  }
+		  
+		  float ff(float x) {
+			return f(x) * .5 + f(x*2.) * .2 + f(x*5.) * .3;
+		  }
+		  
+		  vec3 draw(vec2 p, float thickness, vec3 color, float amp) {
+			float r = 1. - smoothstep(abs(p.y-ff(p.x) * amp), 0., thickness);
+			vec3 c = r * color;
+			return c;
+		  }
+		  
+		  void main() {
+			vec2 p0 = vec2(vUv.x * 2. - 1., 1. - vUv.y * 2. );
+			vec2 p = vec2(p0.x * resolution.x / resolution.y, p0.y);
+			vec2 p1 = vec2(1., 0.) + p;
+			vec2 p2 = vec2(2., 0.) + p;
+			vec2 p3 = vec2(3., 0.) + p;
+			
+			vec3 c = vec3(0);
+			for (int i = 0; i < 3; i++) {
+			  float lum = .5 - float(i)*.1;
+			  float amp = 0.5 + float(i) * .6;
+			  float thick = 0.02 + 0.05 * float(i);
+			  c+= draw(p + vec2(float(i), 0), thick, BLUE, amp) * lum;
+			  c+= draw(p1+ vec2(float(i), 0), thick, CYAN, amp) * lum;
+			  c+= draw(p2+ vec2(float(i), 0), thick, RED, amp) * lum;
+			  c+= draw(p3+ vec2(float(i), 0), thick, CYAN, amp) * lum;
+			  
+			}
+			
+			c= clamp(c* vec3(2., .5, 2.), 0., 1.);
+			gl_FragColor = vec4(c,1.);
+		  }
+		</script>
+	  </shader-art>
+	  <script type="module">
+		import { ShaderArt } from './shader-art';
+		// import { UniformPlugin } from 'https://cdn.skypack.dev/@shader-art/plugin-uniform';
+
+		ShaderArt.register([/* () => new UniformPlugin() */]);
+
+	  </script>
 </body>
 </html>

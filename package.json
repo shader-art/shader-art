@@ -41,11 +41,12 @@
     }
   },
   "devDependencies": {
+    "@11ty/eleventy": "^3.0.0-alpha.14",
     "@skypack/package-check": "^0.2.2",
     "@types/jest": "^29.5.12",
     "@typescript-eslint/eslint-plugin": "^7.14.1",
     "@typescript-eslint/parser": "^7.14.1",
-    "esbuild": "^0.21.5",
+    "esbuild": "^0.22.0",
     "esbuild-plugin-inline-import": "^1.0.4",
     "eslint": "^8.57.0",
     "husky": "^9.0.11",
