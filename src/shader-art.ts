@@ -72,12 +72,12 @@ export class ShaderArt extends HTMLElement {
   }
 
   get fragCode(): string {
-    const fragScript = this.querySelector('[type="text/frag"], [type=frag]');
+    const fragScript = this.querySelector('[type="x-shader/x-fragment"], [type="text/frag"], [type=frag]');
     return (fragScript?.textContent || DEFAULT_FRAG).trim();
   }
 
   get vertCode(): string {
-    const vertScript = this.querySelector('[type="text/vert"], [type=vert]');
+    const vertScript = this.querySelector('[type="x-shader/x-vertex"], [type="text/vert"], [type=vert]');
     return (vertScript?.textContent || DEFAULT_VERT).trim();
   }
 
